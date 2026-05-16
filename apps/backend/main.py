@@ -11,6 +11,7 @@ from apps.backend.routers.video import router as video_router
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    cors_origins = [origin.strip() for origin in settings.frontend_origin.split(",") if origin.strip()]
 
     app = FastAPI(
         title=settings.app_name,
@@ -18,7 +19,7 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[settings.frontend_origin],
+        allow_origins=cors_origins,
         allow_credentials=False,
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["Content-Type"],

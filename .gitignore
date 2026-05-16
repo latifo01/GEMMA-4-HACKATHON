@@ -26,6 +26,7 @@ data/chroma/
 data/page_images/
 data/audio_tmp/
 data/video_tmp/
+data/*.log
 data/*.db
 data/*.sqlite
 data/*.sqlite3
