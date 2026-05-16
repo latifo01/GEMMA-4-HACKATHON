@@ -1,0 +1,8 @@
+Translate the clinical support text into {target_language}.
+
+Preserve clinical classification labels, triage colors, danger signs, medication names, and
+return precautions exactly. Keep the tone clear and suitable for a healthcare worker explaining
+the result to a caregiver.
+
+Text:
+{source_text}

@@ -1,0 +1,8 @@
+Verify that the triage output is consistent with deterministic clinical tool outputs.
+
+Required checks:
+- General danger signs require urgent high-risk handling.
+- Chest indrawing or fast breathing must not be hidden.
+- Missing information must remain visible.
+- Clinical recommendations need citations or an evidence warning.
+- Translation must preserve safety-critical terms.

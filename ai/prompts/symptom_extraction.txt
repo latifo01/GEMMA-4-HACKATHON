@@ -1,0 +1,11 @@
+Extract pediatric IMCI symptoms from the transcript.
+
+Source language: {source_language}
+Transcript:
+{transcript}
+
+Return JSON only. Use booleans for symptoms. Include a "modules" array with likely IMCI modules,
+such as "cough_or_difficult_breathing", "diarrhea_dehydration", "fever", "nutrition_anemia",
+"ear_problem", or "unknown".
+
+If a symptom is not clearly present, return false. Do not infer facts that are not stated.

@@ -1,0 +1,47 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      BACKEND_PORT: 8000
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      GOOGLE_AI_API_KEY: ${GOOGLE_AI_API_KEY:-}
+      GEMMA_ONLINE_MODEL: ${GEMMA_ONLINE_MODEL:-models/gemma-4-26b-a4b-it}
+      OLLAMA_BASE_URL: ${DOCKER_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      GEMMA_OFFLINE_MODEL: ${GEMMA_OFFLINE_MODEL:-gemma4:e4b-it}
+      OLLAMA_HEALTH_TIMEOUT_SECONDS: ${OLLAMA_HEALTH_TIMEOUT_SECONDS:-1.0}
+      OLLAMA_GENERATION_TIMEOUT_SECONDS: ${OLLAMA_GENERATION_TIMEOUT_SECONDS:-180.0}
+      CHROMA_PATH: /app/data/chroma
+      RAG_VISUAL_ASSETS_PATH: /app/data/page_images
+      RAG_TEXT_EMBEDDING_PROVIDER: ${RAG_TEXT_EMBEDDING_PROVIDER:-fastembed}
+      RAG_TEXT_EMBEDDING_MODEL: ${RAG_TEXT_EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+      RAG_IMAGE_EMBEDDING_PROVIDER: ${RAG_IMAGE_EMBEDDING_PROVIDER:-fastembed-clip}
+      RAG_IMAGE_EMBEDDING_MODEL: ${RAG_IMAGE_EMBEDDING_MODEL:-Qdrant/clip-ViT-B-32-vision}
+      RAG_IMAGE_TEXT_EMBEDDING_MODEL: ${RAG_IMAGE_TEXT_EMBEDDING_MODEL:-Qdrant/clip-ViT-B-32-text}
+      DB_PATH: /app/data/imciflow.db
+      WHISPER_MODEL_NAME: ${WHISPER_MODEL_NAME:-small}
+      WHISPER_DEVICE: ${WHISPER_DEVICE:-cpu}
+      WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
+      AUDIO_TEMP_DIR: /app/data/audio_tmp
+      AUDIO_MAX_FILE_SIZE_BYTES: ${AUDIO_MAX_FILE_SIZE_BYTES:-26214400}
+      VIDEO_TEMP_DIR: /app/data/video_tmp
+      VIDEO_MAX_FILE_SIZE_BYTES: ${VIDEO_MAX_FILE_SIZE_BYTES:-83886080}
+      VIDEO_MAX_DURATION_SECONDS: ${VIDEO_MAX_DURATION_SECONDS:-120.0}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./data:/app/data
+      - ./dataset:/app/dataset:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read()",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3

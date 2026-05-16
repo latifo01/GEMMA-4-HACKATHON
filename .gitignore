@@ -1,0 +1,45 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+playwright-report/
+test-results/
+
+# Local generated data
+data/chroma/
+data/page_images/
+data/audio_tmp/
+data/video_tmp/
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
+# Large local datasets
+dataset/*.pdf
+dataset/*.csv
+dataset/**/*.wav
+dataset/**/*.txt
+dataset/**/*.zip
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.claude/

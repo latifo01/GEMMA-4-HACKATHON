@@ -1,0 +1,16 @@
+[
+  {
+    "id": "fast_breathing_thresholds",
+    "query": "fast breathing 40 breaths per minute 12 months up to 5 years",
+    "expected_source": "imci-chart-booklet.pdf",
+    "expected_key_phrase": "fast breathing",
+    "allowed_pages": [6, 7]
+  },
+  {
+    "id": "severe_dehydration_signs",
+    "query": "severe dehydration sunken eyes skin pinch goes back very slowly",
+    "expected_source": "imci-chart-booklet.pdf",
+    "expected_key_phrase": "sunken eyes",
+    "allowed_pages": [11, 46]
+  }
+]
