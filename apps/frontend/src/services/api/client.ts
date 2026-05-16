@@ -22,7 +22,10 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   let response: Response;
 
   try {
-    response = await fetch(`${env.apiBaseUrl}${path}`, options);
+    response = await fetch(`${env.apiBaseUrl}${path}`, {
+      ...options,
+      headers: withTunnelBypass(options.headers),
+    });
   } catch {
     throw new ApiError(normalizeApiError(null));
   }
@@ -51,4 +54,14 @@ export function apiForm<T>(path: string, body: FormData): Promise<ApiEnvelope<T>
     method: "POST",
     body,
   });
+}
+
+function withTunnelBypass(headersInit?: HeadersInit) {
+  const headers = new Headers(headersInit);
+
+  if (env.apiBaseUrl.includes(".loca.lt")) {
+    headers.set("bypass-tunnel-reminder", "true");
+  }
+
+  return headers;
 }

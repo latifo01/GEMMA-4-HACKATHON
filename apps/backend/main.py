@@ -22,7 +22,7 @@ def create_app() -> FastAPI:
         allow_origins=cors_origins,
         allow_credentials=False,
         allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Content-Type"],
+        allow_headers=["Content-Type", "bypass-tunnel-reminder"],
     )
     app.include_router(audio_router)
     app.include_router(health_router)

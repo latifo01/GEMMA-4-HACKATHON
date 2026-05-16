@@ -18,6 +18,7 @@ def test_frontend_origin_is_allowed_for_preflight(monkeypatch) -> None:
                 headers={
                     "Origin": origin,
                     "Access-Control-Request-Method": "GET",
+                    "Access-Control-Request-Headers": "bypass-tunnel-reminder",
                 },
             )
 
