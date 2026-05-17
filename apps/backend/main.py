@@ -1,12 +1,22 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from apps.backend.config import get_settings
+from apps.backend.database import create_database
 from apps.backend.routers.audio import router as audio_router
 from apps.backend.routers.health import router as health_router
 from apps.backend.routers.sessions import router as sessions_router
 from apps.backend.routers.triage import router as triage_router
 from apps.backend.routers.video import router as video_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    settings = get_settings()
+    await create_database(settings)
+    yield
 
 
 def create_app() -> FastAPI:
@@ -16,6 +26,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
+        lifespan=lifespan,
     )
     app.add_middleware(
         CORSMiddleware,
