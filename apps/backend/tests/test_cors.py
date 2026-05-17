@@ -5,7 +5,11 @@ from apps.backend.main import create_app
 
 
 def test_frontend_origin_is_allowed_for_preflight(monkeypatch) -> None:
-    origins = "http://localhost:5173,https://gemma-4-hackathon.vercel.app"
+    origins = (
+        "http://localhost:5173,"
+        "https://gemma-4-hackathon.vercel.app,"
+        "https://gemma-4-hackathon-git-main-ibrahim-youssouf-abdelatifs-projects.vercel.app"
+    )
     monkeypatch.setenv("FRONTEND_ORIGIN", origins)
     get_settings.cache_clear()
 
