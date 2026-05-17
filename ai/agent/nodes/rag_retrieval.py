@@ -1,7 +1,11 @@
+import os
 from typing import Any
 
 from ai.agent.state import TriageState
 from ai.rag.fallback_imci import query_fallback_evidence
+
+_PAGE_IMAGES_DIR = os.getenv("RAG_VISUAL_ASSETS_PATH", "./data/page_images")
+_PAGE_IMAGES_URL = "/images"
 
 
 def retrieve_rag_context(state: TriageState, vector_store: Any, top_k: int = 5) -> TriageState:
@@ -30,10 +34,25 @@ def build_retrieval_query(state: TriageState) -> str:
 
 
 def to_citation(item: dict[str, Any]) -> dict[str, Any]:
+    source = item.get("source", "")
+    page = item.get("page")
+    image_url = _resolve_image_url(source, page)
     return {
-        "source": item["source"],
-        "page": item["page"],
+        "source": source,
+        "page": page,
         "chunk_id": item["chunk_id"],
         "relevance_score": item.get("relevance_score", 0.0),
         "quote": item.get("text", "")[:240],
+        "image_url": image_url,
     }
+
+
+def _resolve_image_url(source: str, page: Any) -> str | None:
+    """Return a URL for the IMCI page image if it exists on disk."""
+    if page is None or not source:
+        return None
+    stem = source.replace(".pdf", "").replace(" ", "_")
+    filename = f"{stem}_page_{page}.png"
+    if os.path.exists(os.path.join(_PAGE_IMAGES_DIR, filename)):
+        return f"{_PAGE_IMAGES_URL}/{filename}"
+    return None

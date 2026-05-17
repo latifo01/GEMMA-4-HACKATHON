@@ -17,10 +17,8 @@ import { useAudioTranscription } from "../audio/useAudioTranscription";
 import { useVideoAnalysis } from "../video/useVideoAnalysis";
 import { VideoUpload } from "../video/VideoUpload";
 import { getErrorMessage } from "../../lib/errors";
-import type { ApiMeta } from "../../types/api";
-import type { TriageResultData } from "../../types/triage";
 import { TriageResult } from "./TriageResult";
-import { useTriageRun } from "./useTriageRun";
+import { useTriageStream } from "./useTriageStream";
 
 const triageSchema = z.object({
   transcript: z.string().min(8, "Enter at least a short symptom description."),
@@ -58,13 +56,11 @@ export function TriageWorkspace() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [result, setResult] = useState<TriageResultData | null>(null);
-  const [resultMeta, setResultMeta] = useState<ApiMeta | null>(null);
 
   const health = useBackendHealth();
   const audioMutation = useAudioTranscription();
   const videoMutation = useVideoAnalysis();
-  const triageMutation = useTriageRun();
+  const triageStream = useTriageStream();
 
   const {
     formState: { errors },
@@ -87,36 +83,25 @@ export function TriageWorkspace() {
   const formValues = watch();
   const errorMessage =
     localError ||
+    triageStream.error ||
     getMutationError(audioMutation.error) ||
-    getMutationError(videoMutation.error) ||
-    getMutationError(triageMutation.error);
+    getMutationError(videoMutation.error);
+
+  const isRunning = triageStream.isStreaming;
 
   const onSubmit = handleSubmit(async (values) => {
     setLocalError(null);
+    triageStream.reset();
 
-    try {
-      const response = await triageMutation.mutateAsync({
-        transcript: values.transcript,
-        source_language: values.source_language,
-        target_language: values.target_language,
-        model_mode: values.model_mode,
-        patient: {
-          age_months: values.age_months,
-          sex: "unknown",
-        },
-        measurements: {
-          respiratory_rate_bpm: values.respiratory_rate_bpm,
-        },
-        context: {
-          setting: "low_resource_clinic",
-          frontend: "vercel_demo",
-        },
-      });
-      setResult(response.data);
-      setResultMeta(response.meta);
-    } catch (error) {
-      setLocalError(getErrorMessage(error));
-    }
+    await triageStream.run({
+      transcript: values.transcript,
+      source_language: values.source_language,
+      target_language: values.target_language,
+      model_mode: values.model_mode,
+      patient: { age_months: values.age_months, sex: "unknown" },
+      measurements: { respiratory_rate_bpm: values.respiratory_rate_bpm },
+      context: { setting: "low_resource_clinic", frontend: "vercel_demo" },
+    });
   });
 
   async function handleTranscribe() {
@@ -283,8 +268,8 @@ export function TriageWorkspace() {
             <Badge tone="teal">Offline capable</Badge>
             <span>Same workflow, selectable routing.</span>
           </div>
-          <Button type="submit" variant="primary" disabled={triageMutation.isPending}>
-            {triageMutation.isPending ? (
+          <Button type="submit" variant="primary" disabled={isRunning}>
+            {isRunning ? (
               <Spinner label="Running triage" />
             ) : (
               <>
@@ -323,7 +308,12 @@ export function TriageWorkspace() {
             </li>
           </ol>
         </section>
-        <TriageResult result={result} meta={resultMeta} isLoading={triageMutation.isPending} />
+        <TriageResult
+          result={triageStream.result}
+          meta={null}
+          isLoading={isRunning}
+          streamNodes={triageStream.nodes}
+        />
       </div>
     </div>
   );

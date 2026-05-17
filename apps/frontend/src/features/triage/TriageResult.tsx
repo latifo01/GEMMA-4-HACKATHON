@@ -7,20 +7,23 @@ import { Button } from "../../components/ui/Button";
 import { formatDuration } from "../../lib/format";
 import type { ApiMeta } from "../../types/api";
 import type { TriageResultData } from "../../types/triage";
+import type { NodeStatus, StreamNode } from "./useTriageStream";
 
 type TriageResultProps = {
   meta: ApiMeta | null;
   result: TriageResultData | null;
   isLoading: boolean;
+  streamNodes?: Record<StreamNode, NodeStatus>;
 };
 
-const loadingSteps = [
-  "Preparing case",
-  "Retrieving IMCI guidance",
-  "Running Gemma reasoning",
-  "Applying safety checks",
-  "Saving audit session",
-];
+const NODE_LABELS: Record<StreamNode, string> = {
+  intake: "Validating patient data",
+  symptom_extraction: "Extracting clinical signals (Gemma 4)",
+  rag_retrieval: "Searching IMCI guidelines",
+  imci_reasoning: "Running deterministic safety tools",
+  verification: "Checking danger signs",
+  translation: "Generating multilingual output",
+};
 
 const colorTone: Record<string, "green" | "amber" | "red" | "blue" | "neutral"> = {
   green: "green",
@@ -29,7 +32,14 @@ const colorTone: Record<string, "green" | "amber" | "red" | "blue" | "neutral"> 
   red: "red",
 };
 
-export function TriageResult({ meta, result, isLoading }: TriageResultProps) {
+const sectionStyle: Record<string, string> = {
+  pink: "border-red-400 bg-red-50",
+  red: "border-red-400 bg-red-50",
+  yellow: "border-amber-400 bg-amber-50",
+  green: "border-green-400 bg-green-50",
+};
+
+export function TriageResult({ meta, result, isLoading, streamNodes }: TriageResultProps) {
   const elapsedSeconds = useElapsedSeconds(isLoading);
 
   if (isLoading) {
@@ -45,16 +55,7 @@ export function TriageResult({ meta, result, isLoading }: TriageResultProps) {
             The backend is extracting symptoms, grounding the case, and applying deterministic safety tools.
           </p>
         </div>
-        <ol className="grid content-start gap-2">
-          {loadingSteps.map((step, index) => (
-            <li key={step} className="flex items-center gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-100 text-xs font-bold text-blue-700">
-                {index + 1}
-              </span>
-              <span>{step}</span>
-            </li>
-          ))}
-        </ol>
+        <StreamingTrace nodes={streamNodes} />
       </section>
     );
   }
@@ -73,17 +74,29 @@ export function TriageResult({ meta, result, isLoading }: TriageResultProps) {
     );
   }
 
-  const tone = colorTone[result.triage_color?.toLowerCase()] ?? "blue";
+  const colorKey = result.triage_color?.toLowerCase() ?? "neutral";
+  const tone = colorTone[colorKey] ?? "blue";
+  const sectionClass = sectionStyle[colorKey] ?? "border-slate-200 bg-white";
+  const isPulse = colorKey === "pink" || colorKey === "red";
   const sessionUrl = `/session/${encodeURIComponent(result.session_id)}`;
   const evidenceCount = result.citations.length;
   const toolNames = result.tool_results.map((tool) => String(tool.tool_name ?? tool.name ?? "clinical_tool"));
 
+  const isRTL =
+    result.translated_output != null &&
+    result.translated_output.length > 0 &&
+    /[؀-ۿ]/.test(result.translated_output.slice(0, 30));
+
   return (
-    <section className="grid gap-4 rounded-md border border-slate-200 bg-white p-5 shadow-subtle">
+    <section
+      className={`grid gap-4 rounded-md border p-5 shadow-subtle transition-colors duration-500 ${sectionClass}`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="grid gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={tone}>{result.triage_color}</Badge>
+            <Badge tone={tone} className={isPulse ? "animate-pulse" : undefined}>
+              {result.triage_color}
+            </Badge>
             <Badge tone={result.model.mode === "online" ? "blue" : "teal"}>
               {result.model.mode ?? "unknown"} · {result.model.name ?? "model"}
             </Badge>
@@ -113,7 +126,7 @@ export function TriageResult({ meta, result, isLoading }: TriageResultProps) {
         <h3 className="text-sm font-semibold text-slate-800">Recommended actions</h3>
         <ul className="grid gap-2">
           {result.recommendations.map((item) => (
-            <li key={item} className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm leading-6">
+            <li key={item} className="rounded-md border border-slate-200 bg-white/60 px-3 py-2 text-sm leading-6">
               {item}
             </li>
           ))}
@@ -122,7 +135,10 @@ export function TriageResult({ meta, result, isLoading }: TriageResultProps) {
 
       <div className="grid gap-2">
         <h3 className="text-sm font-semibold text-slate-800">Reasoning</h3>
-        <p className="whitespace-pre-wrap rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm leading-6">
+        <p
+          dir={isRTL ? "rtl" : "ltr"}
+          className="whitespace-pre-wrap rounded-md border border-slate-200 bg-white/60 px-3 py-2 text-sm leading-6"
+        >
           {formatClinicalText(result.translated_output || result.reasoning)}
         </p>
       </div>
@@ -168,9 +184,7 @@ export function TriageResult({ meta, result, isLoading }: TriageResultProps) {
         <div className="grid gap-2">
           {result.citations.length > 0 ? (
             result.citations.slice(0, 5).map((citation, index) => (
-              <div key={`${index}-${JSON.stringify(citation).slice(0, 24)}`} className="rounded-md border border-slate-200 px-3 py-2 text-xs leading-5 text-slate-700">
-                {formatCitation(citation)}
-              </div>
+              <CitationCard key={`${index}-${JSON.stringify(citation).slice(0, 24)}`} citation={citation} />
             ))
           ) : (
             <p className="text-sm text-slate-500">No citation returned.</p>
@@ -178,6 +192,71 @@ export function TriageResult({ meta, result, isLoading }: TriageResultProps) {
         </div>
       </div>
     </section>
+  );
+}
+
+function StreamingTrace({ nodes }: { nodes?: Record<string, NodeStatus> }) {
+  return (
+    <ol className="grid content-start gap-2">
+      {(Object.entries(NODE_LABELS) as [StreamNode, string][]).map(([node, label], index) => {
+        const status: NodeStatus = nodes?.[node] ?? "pending";
+        const stateClass = {
+          pending: "bg-slate-50 border-slate-200 text-slate-400",
+          running: "bg-blue-50 border-blue-300 text-blue-800 animate-pulse",
+          completed: "bg-green-50 border-green-300 text-green-800",
+        }[status];
+        const icon = status === "completed" ? "✓" : status === "running" ? "◎" : String(index + 1);
+        return (
+          <li
+            key={node}
+            className={`flex items-center gap-3 rounded-md border px-3 py-2 text-sm transition-all duration-300 ${stateClass}`}
+          >
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs font-bold">
+              {icon}
+            </span>
+            <span>{label}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function CitationCard({ citation }: { citation: Record<string, unknown> }) {
+  const title = String(citation.title ?? citation.source ?? "IMCI reference");
+  const page = citation.page ? ` · page ${String(citation.page)}` : "";
+  const excerpt = String(citation.text ?? citation.excerpt ?? citation.quote ?? "");
+  const imageUrl = citation.image_url ? String(citation.image_url) : null;
+  const score = typeof citation.relevance_score === "number" ? citation.relevance_score : null;
+
+  return (
+    <div className="overflow-hidden rounded-md border border-slate-200 text-xs leading-5 text-slate-700">
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt={`IMCI page ${String(citation.page ?? "")}`}
+          className="max-h-36 w-full border-b border-slate-200 object-cover object-top"
+        />
+      )}
+      <div className="px-3 py-2">
+        <span className="font-semibold">
+          {title}
+          {page}
+        </span>
+        {score !== null && (
+          <div className="mt-1.5 flex items-center gap-2">
+            <div className="h-1 flex-1 rounded bg-slate-200">
+              <div
+                className="h-1 rounded bg-blue-400 transition-all duration-500"
+                style={{ width: `${Math.round(score * 100)}%` }}
+              />
+            </div>
+            <span className="text-slate-400">{Math.round(score * 100)}%</span>
+          </div>
+        )}
+        {excerpt && <p className="mt-1">{excerpt.slice(0, 180)}</p>}
+      </div>
+    </div>
   );
 }
 
@@ -259,12 +338,4 @@ function formatLabel(value: string) {
     .replace(/_/g, " ")
     .toLowerCase()
     .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function formatCitation(citation: Record<string, unknown>) {
-  const title = String(citation.title ?? citation.source ?? citation.document ?? "IMCI reference");
-  const page = citation.page ? ` · page ${String(citation.page)}` : "";
-  const excerpt = citation.text ?? citation.excerpt ?? citation.chunk;
-
-  return excerpt ? `${title}${page}: ${String(excerpt).slice(0, 180)}` : `${title}${page}`;
 }

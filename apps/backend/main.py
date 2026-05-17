@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from apps.backend.config import get_settings
 from apps.backend.database import create_database
@@ -40,6 +41,14 @@ def create_app() -> FastAPI:
     app.include_router(sessions_router)
     app.include_router(triage_router)
     app.include_router(video_router)
+
+    if settings.rag_visual_assets_path.exists():
+        app.mount(
+            "/images",
+            StaticFiles(directory=str(settings.rag_visual_assets_path)),
+            name="page_images",
+        )
+
     return app
 
 

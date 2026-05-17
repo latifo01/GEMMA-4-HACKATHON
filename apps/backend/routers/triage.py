@@ -1,9 +1,10 @@
+import json
 from time import perf_counter
 from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai.agent.graph import AgentPipeline
@@ -114,3 +115,81 @@ async def run_triage(
             "duration_ms": duration_ms,
         },
     }
+
+
+@router.post("/run/stream")
+async def stream_triage(
+    request: TriageRequest,
+    db_session: AsyncSession = Depends(get_db_session),
+    pipeline: AgentPipeline = Depends(get_agent_pipeline),
+) -> StreamingResponse:
+    request_payload = request.model_dump(mode="json")
+    audit_session = await create_session(
+        db_session=db_session,
+        request_payload=request_payload,
+        session_id=request.session_id,
+    )
+
+    async def event_generator():
+        try:
+            async for event in pipeline.stream(
+                TriageInput(
+                    transcript=request.transcript,
+                    source_language=request.source_language,
+                    target_language=request.target_language,
+                    model_mode=request.model_mode,
+                    patient=request.patient,
+                    measurements=request.measurements,
+                    context=request.context,
+                )
+            ):
+                event_type = event.pop("event", "message")
+                payload = json.dumps(event, default=str)
+                yield f"event: {event_type}\ndata: {payload}\n\n"
+
+                if event_type == "result":
+                    result_data = TriageResultData(
+                        session_id=audit_session.session_id,
+                        **event.get("data", {}),
+                    ).model_dump(mode="json")
+                    model_mode = result_data.get("model", {}).get("mode", "unavailable")
+                    await update_session(
+                        db_session=db_session,
+                        session_id=audit_session.session_id,
+                        status="completed",
+                        result_payload=result_data,
+                        errors=[],
+                        model_mode=model_mode,
+                    )
+        except ModelUnavailableError as exc:
+            error = {
+                "code": "MODEL_UNAVAILABLE",
+                "message": "No model is available for the requested mode.",
+                "details": {"requested_mode": exc.requested_mode},
+            }
+            yield f"event: error\ndata: {json.dumps(error)}\n\n"
+            await update_session(
+                db_session=db_session,
+                session_id=audit_session.session_id,
+                status="failed",
+                errors=[error],
+                model_mode="unavailable",
+            )
+        except Exception as exc:
+            error = {"code": "STREAM_ERROR", "message": str(exc)}
+            yield f"event: error\ndata: {json.dumps(error)}\n\n"
+            await update_session(
+                db_session=db_session,
+                session_id=audit_session.session_id,
+                status="failed",
+                errors=[error],
+            )
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
