@@ -1,4 +1,3 @@
-import { flushSync } from "react-dom";
 import { useCallback, useRef, useState } from "react";
 
 import { env } from "../../app/env";
@@ -30,12 +29,17 @@ const ALL_NODES: StreamNode[] = [
   "translation",
 ];
 
-// Minimum time (ms) each node stays visually "running" before completing.
-// Prevents steps from flickering past too fast to read.
-const MIN_NODE_DISPLAY_MS = 400;
+// Minimum time each node stays visually "running" before completing.
+const MIN_NODE_DISPLAY_MS = 500;
 
 function initialNodes(): Record<StreamNode, NodeStatus> {
   return Object.fromEntries(ALL_NODES.map((n) => [n, "pending"])) as Record<StreamNode, NodeStatus>;
+}
+
+// Yield to the browser event loop, letting React commit pending state updates
+// before continuing. Safer than flushSync for React 19 concurrent mode.
+function tick(ms = 0): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 export function useTriageStream() {
@@ -46,21 +50,18 @@ export function useTriageStream() {
     isStreaming: false,
   });
 
-  // AbortController-based cancellation: each run() gets its own controller.
-  // Aborting it cancels the fetch AND stops the event loop — no race condition.
+  // Each run() gets its own AbortController.
+  // Aborting cancels the fetch AND breaks the reader loop — no race condition.
   const abortRef = useRef<AbortController | null>(null);
 
   const run = useCallback(async (request: TriageRequest) => {
-    // Cancel any previous stream before starting a new one.
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
-    // flushSync: force React to commit the reset synchronously so the
-    // loading UI appears immediately, before the first await below.
-    flushSync(() => {
-      setState({ nodes: initialNodes(), result: null, error: null, isStreaming: true });
-    });
+    setState({ nodes: initialNodes(), result: null, error: null, isStreaming: true });
+    // Yield once so the loading UI renders before the fetch starts.
+    await tick();
 
     let response: Response;
     try {
@@ -75,18 +76,14 @@ export function useTriageStream() {
       });
     } catch (err) {
       if (controller.signal.aborted) return;
-      flushSync(() => {
-        setState((s) => ({ ...s, isStreaming: false, error: String(err) }));
-      });
+      setState((s) => ({ ...s, isStreaming: false, error: String(err) }));
       return;
     }
 
     if (!response.ok || !response.body) {
       const text = await response.text().catch(() => "Stream request failed");
       if (!controller.signal.aborted) {
-        flushSync(() => {
-          setState((s) => ({ ...s, isStreaming: false, error: text }));
-        });
+        setState((s) => ({ ...s, isStreaming: false, error: text }));
       }
       return;
     }
@@ -94,8 +91,6 @@ export function useTriageStream() {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
-
-    // Track when each node started so we can enforce MIN_NODE_DISPLAY_MS.
     const nodeStartTimes: Partial<Record<StreamNode, number>> = {};
 
     try {
@@ -126,42 +121,34 @@ export function useTriageStream() {
           if (eventType === "node_started") {
             const node = data.node as StreamNode;
             nodeStartTimes[node] = Date.now();
-            // flushSync: each node_started triggers an immediate visible render.
-            flushSync(() => {
-              setState((s) => ({ ...s, nodes: { ...s.nodes, [node]: "running" } }));
-            });
+            setState((s) => ({ ...s, nodes: { ...s.nodes, [node]: "running" } }));
+            // Yield so React renders "running" before the next event is processed.
+            await tick();
+
           } else if (eventType === "node_completed") {
             const node = data.node as StreamNode;
-
-            // If the node resolved faster than MIN_NODE_DISPLAY_MS, wait the
-            // remainder so the "running" state is actually readable on screen.
+            // Enforce minimum display time so fast nodes are readable on screen.
             const elapsed = Date.now() - (nodeStartTimes[node] ?? 0);
-            if (elapsed < MIN_NODE_DISPLAY_MS) {
-              await new Promise<void>((resolve) =>
-                setTimeout(resolve, MIN_NODE_DISPLAY_MS - elapsed)
-              );
+            const remaining = MIN_NODE_DISPLAY_MS - elapsed;
+            if (remaining > 0) {
+              await tick(remaining);
             }
             if (controller.signal.aborted) break;
+            setState((s) => ({ ...s, nodes: { ...s.nodes, [node]: "completed" } }));
+            await tick();
 
-            flushSync(() => {
-              setState((s) => ({ ...s, nodes: { ...s.nodes, [node]: "completed" } }));
-            });
           } else if (eventType === "result") {
             const result = data.data as TriageResultData;
-            flushSync(() => {
-              setState((s) => ({ ...s, isStreaming: false, result }));
-            });
+            setState((s) => ({ ...s, isStreaming: false, result }));
+
           } else if (eventType === "error") {
             const message = String((data as Record<string, unknown>).message ?? "Stream error");
-            flushSync(() => {
-              setState((s) => ({ ...s, isStreaming: false, error: message }));
-            });
+            setState((s) => ({ ...s, isStreaming: false, error: message }));
           }
         }
       }
     } finally {
       reader.releaseLock();
-      // Guard: if the result event already set isStreaming=false, don't overwrite.
       setState((s) => (s.isStreaming ? { ...s, isStreaming: false } : s));
     }
   }, []);
@@ -169,8 +156,6 @@ export function useTriageStream() {
   const reset = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
-    // No flushSync needed here: reset is called before run() in onSubmit,
-    // and run() immediately does its own flushSync.
     setState({ nodes: initialNodes(), result: null, error: null, isStreaming: false });
   }, []);
 
