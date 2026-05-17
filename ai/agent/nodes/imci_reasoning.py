@@ -1,5 +1,6 @@
 from ai.agent.state import TriageState
 from ai.tools.assess_dehydration import assess_dehydration
+from ai.tools.assess_fever import assess_fever
 from ai.tools.classify_pneumonia import classify_pneumonia
 from ai.tools.detect_danger_signs import detect_danger_signs
 from ai.tools.generate_referral import generate_referral
@@ -17,6 +18,8 @@ def reason_over_imci(state: TriageState) -> TriageState:
     symptoms = state.extracted_symptoms
     age_months = state.patient.get("age_months")
     respiratory_rate_bpm = state.measurements.get("respiratory_rate_bpm")
+    temperature_celsius = state.measurements.get("temperature_celsius")
+    fever_duration_days = state.context.get("fever_duration_days")
 
     danger_result = detect_danger_signs(
         unable_to_drink_or_breastfeed=symptoms.get("unable_to_drink_or_breastfeed", False),
@@ -49,6 +52,16 @@ def reason_over_imci(state: TriageState) -> TriageState:
                 restless_or_irritable=symptoms.get("restless_or_irritable", False),
                 drinks_eagerly_or_thirsty=symptoms.get("drinks_eagerly_or_thirsty", False),
                 skin_pinch_slow=symptoms.get("skin_pinch_slow", False),
+            )
+        )
+
+    if symptoms.get("fever") or "fever" in state.module_hints:
+        candidate_results.append(
+            assess_fever(
+                fever=True,
+                temperature_celsius=temperature_celsius,
+                fever_duration_days=fever_duration_days,
+                general_danger_sign=danger_result["outputs"]["has_general_danger_sign"],
             )
         )
 

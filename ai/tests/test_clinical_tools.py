@@ -1,6 +1,7 @@
 import json
 
 from ai.tools.assess_dehydration import assess_dehydration
+from ai.tools.assess_fever import assess_fever
 from ai.tools.calculate_respiratory_rate import calculate_respiratory_rate
 from ai.tools.classify_pneumonia import classify_pneumonia
 from ai.tools.detect_danger_signs import detect_danger_signs
@@ -112,4 +113,15 @@ def test_referral_tool_returns_human_review_and_actions():
     assert result["outputs"]["urgent_referral"] is True
     assert result["outputs"]["human_review_required"] is True
     assert result["outputs"]["actions"]
+    assert_json_serializable(result)
+
+
+def test_fever_tool_records_missing_context_without_escalating_basic_fever():
+    result = assess_fever(fever=True)
+
+    assert result["outputs"]["classification"] == "FEVER"
+    assert result["outputs"]["triage_color"] == "GREEN"
+    assert "measurements.temperature_celsius" in result["outputs"]["missing_information"]
+    assert "context.fever_duration_days" in result["outputs"]["missing_information"]
+    assert "FEVER" in result["outputs"]["safety_flags"]
     assert_json_serializable(result)

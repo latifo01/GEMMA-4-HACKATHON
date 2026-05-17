@@ -144,7 +144,10 @@ RAG_VISUAL_ASSETS_PATH=/tmp/page_images
 DB_PATH=/tmp/imciflow.db
 ```
 
-This is acceptable for the first public backend deployment, but it does not solve persistent RAG.
+The backend includes a small embedded IMCI evidence fallback so public demos can still return
+auditable citations when the Chroma index is missing. This is not a replacement for the full
+multimodal RAG index.
+
 For the final demo, choose one of these paths:
 
 1. Build a small licensed demo RAG index into the Docker image.
@@ -152,7 +155,8 @@ For the final demo, choose one of these paths:
 3. Move vector retrieval to a managed service such as Vertex AI Vector Search or another hosted
    vector database.
 
-Until that is done, `/health` may report `rag_index_available=false` on Cloud Run.
+Until that is done, Cloud Run can answer with fallback evidence, but full PDF/page-image retrieval
+will still require one of the paths above.
 
 ## Troubleshooting
 

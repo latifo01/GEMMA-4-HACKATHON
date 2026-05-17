@@ -61,6 +61,11 @@ class FakeStore:
         ]
 
 
+class EmptyStore:
+    def query(self, query_text: str, top_k: int = 5) -> list[dict[str, Any]]:
+        return []
+
+
 def test_intake_normalizes_language_and_missing_age():
     state = run_intake(
         TriageInput(
@@ -132,6 +137,49 @@ async def test_pipeline_handles_diarrhea_and_dehydration_module():
     assert result["classification"] == "SOME_DEHYDRATION"
     assert result["triage_color"] == "YELLOW"
     assert any(tool["tool_name"] == "assess_dehydration" for tool in result["tool_results"])
+
+
+@pytest.mark.asyncio
+async def test_pipeline_uses_deterministic_french_cues_and_fallback_evidence():
+    llm = FakeLLM(symptoms={"modules": []})
+    pipeline = AgentPipeline(llm_client=llm, vector_store=EmptyStore())
+
+    result = await pipeline.run(
+        TriageInput(
+            transcript="L'enfant presente une forte fievre, vomit plusieurs fois et refuse de boire.",
+            source_language="fr",
+            target_language="en",
+            patient={"age_months": 18},
+        )
+    )
+
+    assert result["classification"] == "GENERAL_DANGER_SIGN"
+    assert result["triage_color"] == "PINK"
+    assert result["extracted_symptoms"]["fever"] is True
+    assert result["extracted_symptoms"]["unable_to_drink_or_breastfeed"] is True
+    assert result["citations"]
+    assert result["citations"][0]["source"] == "imci-chart-booklet.pdf"
+    assert "INSUFFICIENT_RAG_CONTEXT" not in result["safety_flags"]
+
+
+@pytest.mark.asyncio
+async def test_pipeline_classifies_fever_module_without_pneumonia():
+    llm = FakeLLM(symptoms={"fever": True, "modules": ["fever"]})
+    pipeline = AgentPipeline(llm_client=llm, vector_store=EmptyStore())
+
+    result = await pipeline.run(
+        TriageInput(
+            transcript="The child has fever only.",
+            source_language="en",
+            target_language="en",
+            patient={"age_months": 18},
+        )
+    )
+
+    assert result["classification"] == "FEVER"
+    assert result["triage_color"] == "GREEN"
+    assert any(tool["tool_name"] == "assess_fever" for tool in result["tool_results"])
+    assert result["citations"]
 
 
 def test_verification_corrects_low_risk_output_when_danger_sign_exists():

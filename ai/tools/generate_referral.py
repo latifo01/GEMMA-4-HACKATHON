@@ -24,6 +24,13 @@ def generate_referral(
             "Explain return precautions to the caregiver.",
             "Plan follow-up according to local clinical guidance.",
         ]
+    elif classification == "FEVER":
+        urgent_referral = False
+        actions = [
+            "Assess malaria risk and test or treat according to local IMCI protocol.",
+            "Give fever care according to local clinical guidance.",
+            "Advise the caregiver to return immediately if danger signs appear.",
+        ]
     elif triage_color == "GREEN":
         urgent_referral = False
         actions = [

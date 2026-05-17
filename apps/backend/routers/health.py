@@ -5,6 +5,7 @@ from uuid import uuid4
 import httpx
 from fastapi import APIRouter, Depends
 
+from ai.rag.fallback_imci import fallback_evidence_available
 from apps.backend.config import Settings, get_settings
 
 
@@ -22,7 +23,14 @@ async def check_ollama_available(settings: Settings) -> bool:
 
 
 def check_rag_index_available(settings: Settings) -> bool:
-    return settings.chroma_path.exists() and settings.chroma_path.is_dir() and any(settings.chroma_path.iterdir())
+    try:
+        from ai.rag.vectorstore import ChromaVectorStore
+
+        vector_store = ChromaVectorStore(settings.chroma_path)
+        has_chroma_index = vector_store.text_collection.count() > 0 or vector_store.image_collection.count() > 0
+        return has_chroma_index or fallback_evidence_available()
+    except Exception:
+        return fallback_evidence_available()
 
 
 def check_database_available(settings: Settings) -> bool:

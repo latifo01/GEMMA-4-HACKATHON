@@ -96,7 +96,7 @@ def test_settings_normalizes_placeholder_api_key(tmp_path):
     assert settings.google_ai_api_key is None
 
 
-def test_health_reports_missing_rag_index_when_chroma_directory_is_empty(monkeypatch, tmp_path):
+def test_health_reports_embedded_evidence_when_chroma_directory_is_empty(monkeypatch, tmp_path):
     settings = make_settings(tmp_path)
     settings.chroma_path.mkdir()
     patch_ollama(monkeypatch, available=False)
@@ -106,4 +106,4 @@ def test_health_reports_missing_rag_index_when_chroma_directory_is_empty(monkeyp
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["data"]["rag_index_available"] is False
+    assert payload["data"]["rag_index_available"] is True
