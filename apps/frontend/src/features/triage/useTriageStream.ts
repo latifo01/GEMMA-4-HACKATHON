@@ -1,3 +1,4 @@
+import { flushSync } from "react-dom";
 import { useCallback, useRef, useState } from "react";
 
 import { env } from "../../app/env";
@@ -29,6 +30,10 @@ const ALL_NODES: StreamNode[] = [
   "translation",
 ];
 
+// Minimum time (ms) each node stays visually "running" before completing.
+// Prevents steps from flickering past too fast to read.
+const MIN_NODE_DISPLAY_MS = 400;
+
 function initialNodes(): Record<StreamNode, NodeStatus> {
   return Object.fromEntries(ALL_NODES.map((n) => [n, "pending"])) as Record<StreamNode, NodeStatus>;
 }
@@ -40,16 +45,28 @@ export function useTriageStream() {
     error: null,
     isStreaming: false,
   });
-  const cancelRef = useRef(false);
+
+  // AbortController-based cancellation: each run() gets its own controller.
+  // Aborting it cancels the fetch AND stops the event loop — no race condition.
+  const abortRef = useRef<AbortController | null>(null);
 
   const run = useCallback(async (request: TriageRequest) => {
-    cancelRef.current = false;
-    setState({ nodes: initialNodes(), result: null, error: null, isStreaming: true });
+    // Cancel any previous stream before starting a new one.
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    // flushSync: force React to commit the reset synchronously so the
+    // loading UI appears immediately, before the first await below.
+    flushSync(() => {
+      setState({ nodes: initialNodes(), result: null, error: null, isStreaming: true });
+    });
 
     let response: Response;
     try {
       response = await fetch(`${env.apiBaseUrl}/triage/run/stream`, {
         method: "POST",
+        signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
           "bypass-tunnel-reminder": "true",
@@ -57,13 +74,20 @@ export function useTriageStream() {
         body: JSON.stringify(request),
       });
     } catch (err) {
-      setState((s) => ({ ...s, isStreaming: false, error: String(err) }));
+      if (controller.signal.aborted) return;
+      flushSync(() => {
+        setState((s) => ({ ...s, isStreaming: false, error: String(err) }));
+      });
       return;
     }
 
     if (!response.ok || !response.body) {
       const text = await response.text().catch(() => "Stream request failed");
-      setState((s) => ({ ...s, isStreaming: false, error: text }));
+      if (!controller.signal.aborted) {
+        flushSync(() => {
+          setState((s) => ({ ...s, isStreaming: false, error: text }));
+        });
+      }
       return;
     }
 
@@ -71,18 +95,24 @@ export function useTriageStream() {
     const decoder = new TextDecoder();
     let buffer = "";
 
+    // Track when each node started so we can enforce MIN_NODE_DISPLAY_MS.
+    const nodeStartTimes: Partial<Record<StreamNode, number>> = {};
+
     try {
       while (true) {
         const { done, value } = await reader.read();
-        if (done || cancelRef.current) break;
+        if (done || controller.signal.aborted) break;
 
         buffer += decoder.decode(value, { stream: true });
         const blocks = buffer.split("\n\n");
         buffer = blocks.pop() ?? "";
 
         for (const block of blocks) {
-          const eventLine = block.split("\n").find((l) => l.startsWith("event: "));
-          const dataLine = block.split("\n").find((l) => l.startsWith("data: "));
+          if (controller.signal.aborted) break;
+
+          const lines = block.split("\n");
+          const eventLine = lines.find((l) => l.startsWith("event: "));
+          const dataLine = lines.find((l) => l.startsWith("data: "));
           if (!eventLine || !dataLine) continue;
 
           const eventType = eventLine.slice(7).trim();
@@ -95,27 +125,52 @@ export function useTriageStream() {
 
           if (eventType === "node_started") {
             const node = data.node as StreamNode;
-            setState((s) => ({ ...s, nodes: { ...s.nodes, [node]: "running" } }));
+            nodeStartTimes[node] = Date.now();
+            // flushSync: each node_started triggers an immediate visible render.
+            flushSync(() => {
+              setState((s) => ({ ...s, nodes: { ...s.nodes, [node]: "running" } }));
+            });
           } else if (eventType === "node_completed") {
             const node = data.node as StreamNode;
-            setState((s) => ({ ...s, nodes: { ...s.nodes, [node]: "completed" } }));
+
+            // If the node resolved faster than MIN_NODE_DISPLAY_MS, wait the
+            // remainder so the "running" state is actually readable on screen.
+            const elapsed = Date.now() - (nodeStartTimes[node] ?? 0);
+            if (elapsed < MIN_NODE_DISPLAY_MS) {
+              await new Promise<void>((resolve) =>
+                setTimeout(resolve, MIN_NODE_DISPLAY_MS - elapsed)
+              );
+            }
+            if (controller.signal.aborted) break;
+
+            flushSync(() => {
+              setState((s) => ({ ...s, nodes: { ...s.nodes, [node]: "completed" } }));
+            });
           } else if (eventType === "result") {
             const result = data.data as TriageResultData;
-            setState((s) => ({ ...s, isStreaming: false, result }));
+            flushSync(() => {
+              setState((s) => ({ ...s, isStreaming: false, result }));
+            });
           } else if (eventType === "error") {
             const message = String((data as Record<string, unknown>).message ?? "Stream error");
-            setState((s) => ({ ...s, isStreaming: false, error: message }));
+            flushSync(() => {
+              setState((s) => ({ ...s, isStreaming: false, error: message }));
+            });
           }
         }
       }
     } finally {
       reader.releaseLock();
+      // Guard: if the result event already set isStreaming=false, don't overwrite.
       setState((s) => (s.isStreaming ? { ...s, isStreaming: false } : s));
     }
   }, []);
 
   const reset = useCallback(() => {
-    cancelRef.current = true;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    // No flushSync needed here: reset is called before run() in onSubmit,
+    // and run() immediately does its own flushSync.
     setState({ nodes: initialNodes(), result: null, error: null, isStreaming: false });
   }, []);
 
