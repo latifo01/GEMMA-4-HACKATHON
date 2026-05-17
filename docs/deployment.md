@@ -29,6 +29,7 @@ AUDIO_TEMP_DIR
 VIDEO_TEMP_DIR
 APP_ENV
 BACKEND_PORT
+FRONTEND_ORIGIN
 ```
 
 Validation:
@@ -165,13 +166,18 @@ Option 3: Kubernetes.
 
 Selected demo option:
 
-- Single VM or local machine with Docker Compose.
+- Google Cloud Run backend plus Vercel frontend.
 
 Reason:
 
-- Fastest path to a reliable live demo.
-- Lowest deployment complexity.
-- Easy rollback and debugging.
+- Stable public HTTPS backend URL for the jury.
+- Strong alignment with the Google/Gemma 4 project story.
+- Easy rollback through Cloud Run revisions and Vercel deployments.
+- Local Docker Compose remains the recovery path for development and emergency demos.
+
+Primary execution guide:
+
+- `docs/cloud_run_deployment.md`
 
 ## Monitoring and Logging
 

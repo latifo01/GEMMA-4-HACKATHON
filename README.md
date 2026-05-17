@@ -24,10 +24,17 @@ Validated:
 - Unit and API test suite passed.
 - Docker backend image build passed.
 
+Primary demo deployment:
+
+- Backend on Google Cloud Run.
+- Frontend on Vercel via GitHub.
+- Gemma 4 online as the primary demo route, with offline mode presented as the field-resilience
+  architecture.
+
 Next product phase:
 
-- Run the frontend against the live backend, rehearse the jury demo, and deploy the frontend on
-  Vercel via GitHub.
+- Deploy the backend on Google Cloud Run, point Vercel to the Cloud Run URL, then improve clinical
+  extraction quality, RAG relevance, and first-response latency before the jury rehearsal.
 
 Completed backend phases:
 
@@ -56,6 +63,7 @@ offline is an optional resilience check for this machine.
 - `docs/backend_implementation_plan.md`
 - `docs/end_to_end_plan.md`
 - `docs/deployment.md`
+- `docs/cloud_run_deployment.md`
 - `docs/render_deployment.md`
 - `docs/medical_safety.md`
 - `docs/implementation_frontend_plan.md`
@@ -82,7 +90,7 @@ Vercel settings:
 - Root directory: `apps/frontend`
 - Build command: `npm run build`
 - Output directory: `dist`
-- Environment variable: `VITE_API_BASE_URL=https://YOUR_BACKEND_DOMAIN`
+- Environment variable: `VITE_API_BASE_URL=https://YOUR_CLOUD_RUN_URL`
 
 The backend must allow the deployed Vercel origin with `FRONTEND_ORIGIN`.
 
