@@ -56,6 +56,7 @@ offline is an optional resilience check for this machine.
 - `docs/backend_implementation_plan.md`
 - `docs/end_to_end_plan.md`
 - `docs/deployment.md`
+- `docs/render_deployment.md`
 - `docs/medical_safety.md`
 - `docs/implementation_frontend_plan.md`
 

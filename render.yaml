@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: imciflow-backend
+    runtime: docker
+    dockerfilePath: ./apps/backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: GOOGLE_AI_API_KEY
+        sync: false
+      - key: GEMMA_ONLINE_MODEL
+        value: models/gemma-4-26b-a4b-it
+      - key: FRONTEND_ORIGIN
+        value: https://gemma-4-hackathon.vercel.app
+      - key: CHROMA_PATH
+        value: /app/data/chroma
+      - key: RAG_VISUAL_ASSETS_PATH
+        value: /app/data/page_images
+      - key: DB_PATH
+        value: /app/data/imciflow.db
+      - key: WHISPER_DEVICE
+        value: cpu
+      - key: WHISPER_COMPUTE_TYPE
+        value: int8
+      - key: OLLAMA_BASE_URL
+        value: http://localhost:11434
+      - key: GEMMA_OFFLINE_MODEL
+        value: gemma3:1b
