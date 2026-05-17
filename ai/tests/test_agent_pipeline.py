@@ -41,6 +41,16 @@ class FakeLLM:
         )
 
 
+class FailingJsonLLM(FakeLLM):
+    async def generate_json(
+        self,
+        prompt: str,
+        response_schema: dict[str, Any],
+        temperature: float = 0.0,
+    ) -> LLMResponse:
+        raise RuntimeError("model failed")
+
+
 class FakeStore:
     def __init__(self) -> None:
         self.queries: list[str] = []
@@ -160,6 +170,25 @@ async def test_pipeline_uses_deterministic_french_cues_and_fallback_evidence():
     assert result["citations"]
     assert result["citations"][0]["source"] == "imci-chart-booklet.pdf"
     assert "INSUFFICIENT_RAG_CONTEXT" not in result["safety_flags"]
+
+
+@pytest.mark.asyncio
+async def test_pipeline_falls_back_when_model_symptom_extraction_fails():
+    llm = FailingJsonLLM(symptoms={})
+    pipeline = AgentPipeline(llm_client=llm, vector_store=EmptyStore())
+
+    result = await pipeline.run(
+        TriageInput(
+            transcript="L'enfant refuse de boire et a de la fievre.",
+            source_language="fr",
+            target_language="en",
+            patient={"age_months": 18},
+        )
+    )
+
+    assert result["classification"] == "GENERAL_DANGER_SIGN"
+    assert result["extracted_symptoms"]["unable_to_drink_or_breastfeed"] is True
+    assert result["errors"][0]["code"] == "SYMPTOM_EXTRACTION_FALLBACK"
 
 
 @pytest.mark.asyncio

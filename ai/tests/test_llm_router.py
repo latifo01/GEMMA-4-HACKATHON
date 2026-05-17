@@ -7,6 +7,7 @@ import httpx
 import pytest
 
 from ai.llm.gemma_offline import GemmaOfflineClient
+from ai.llm.gemma_online import GemmaOnlineClient
 from ai.llm.router import LLMResponse, LLMRouter, ModelUnavailableError, parse_json_object
 from apps.backend.config import Settings
 
@@ -194,3 +195,38 @@ async def test_offline_client_uses_ollama_generate_contract():
     assert requests[0]["prompt"] == "return json"
     assert requests[0]["format"] == {"type": "object"}
     assert requests[0]["stream"] is False
+
+
+@pytest.mark.asyncio
+async def test_online_client_retries_transient_server_error():
+    class ServerError(Exception):
+        pass
+
+    class FakeResponse:
+        text = "OK"
+
+    class FakeModels:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def generate_content(self, **kwargs):
+            self.calls += 1
+            if self.calls == 1:
+                raise ServerError("temporary failure")
+            return FakeResponse()
+
+    class FakeAio:
+        def __init__(self) -> None:
+            self.models = FakeModels()
+
+    class FakeGoogleClient:
+        def __init__(self) -> None:
+            self.aio = FakeAio()
+
+    client = GemmaOnlineClient(api_key="secret", model_name="models/gemma-4-26b-a4b-it")
+    client._client = FakeGoogleClient()
+
+    response = await client.generate_text("hello")
+
+    assert response.text == "OK"
+    assert client._client.aio.models.calls == 2

@@ -14,8 +14,18 @@ async def translate_output(state: TriageState, llm_client: Any) -> TriageState:
         target_language=state.target_language,
         source_text=source_text,
     )
-    response = await llm_client.generate_text(prompt, temperature=0.0)
-    translated = response.text.strip()
+    try:
+        response = await llm_client.generate_text(prompt, temperature=0.0)
+        translated = response.text.strip()
+    except Exception as exc:
+        translated = source_text
+        state.errors.append(
+            {
+                "code": "TRANSLATION_FALLBACK",
+                "message": "Gemma translation failed; source clinical summary was returned.",
+                "details": {"error_type": type(exc).__name__},
+            }
+        )
     if state.classification not in translated:
         translated = f"{state.classification}: {translated}"
     state.translated_output = translated

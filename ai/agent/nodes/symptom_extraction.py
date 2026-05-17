@@ -32,15 +32,29 @@ async def extract_symptoms(state: TriageState, llm_client: Any) -> TriageState:
         transcript=state.transcript,
         source_language=state.source_language,
     )
-    response = await llm_client.generate_json(prompt, SYMPTOM_EXTRACTION_SCHEMA, temperature=0.0)
-    symptoms = normalize_symptoms(response.parsed_json or {}, state.transcript)
+    try:
+        response = await llm_client.generate_json(prompt, SYMPTOM_EXTRACTION_SCHEMA, temperature=0.0)
+        symptoms = normalize_symptoms(response.parsed_json or {}, state.transcript)
+        state.model = {
+            "mode": response.model_mode,
+            "name": response.model_name,
+        }
+    except Exception as exc:
+        symptoms = normalize_symptoms({}, state.transcript)
+        state.model = {
+            "mode": "deterministic_fallback",
+            "name": "clinical-cue-extractor",
+        }
+        state.errors.append(
+            {
+                "code": "SYMPTOM_EXTRACTION_FALLBACK",
+                "message": "Gemma symptom extraction failed; deterministic clinical cues were used.",
+                "details": {"error_type": type(exc).__name__},
+            }
+        )
 
     state.extracted_symptoms = symptoms
     state.module_hints = list(symptoms.get("modules", []))
-    state.model = {
-        "mode": response.model_mode,
-        "name": response.model_name,
-    }
     return state
 
 
