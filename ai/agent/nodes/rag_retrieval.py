@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Any
 
 from ai.agent.state import TriageState
@@ -48,11 +49,15 @@ def to_citation(item: dict[str, Any]) -> dict[str, Any]:
 
 
 def _resolve_image_url(source: str, page: Any) -> str | None:
-    """Return a URL for the IMCI page image if it exists on disk."""
+    """Return the /images URL for an IMCI page image if it exists on disk.
+
+    Filename convention (matches ingest.py): {stem}-p{page:03d}.png
+    where stem = Path(source).stem.lower().replace(" ", "-")
+    """
     if page is None or not source:
         return None
-    stem = source.replace(".pdf", "").replace(" ", "_")
-    filename = f"{stem}_page_{page}.png"
+    stem = Path(source).stem.lower().replace(" ", "-")
+    filename = f"{stem}-p{int(page):03d}.png"
     if os.path.exists(os.path.join(_PAGE_IMAGES_DIR, filename)):
         return f"{_PAGE_IMAGES_URL}/{filename}"
     return None

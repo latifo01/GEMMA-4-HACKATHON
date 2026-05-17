@@ -19,6 +19,7 @@ COPY scripts /app/scripts
 COPY docs /app/docs
 COPY tests /app/tests
 COPY pytest.ini /app/pytest.ini
+COPY data/page_images /app/data/page_images
 
 EXPOSE 8000
 

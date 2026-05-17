@@ -22,7 +22,13 @@ build
 playwright-report
 test-results
 
-data
+data/chroma/
+data/audio_tmp/
+data/video_tmp/
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+data/*.log
 dataset/*.pdf
 dataset/*.csv
 dataset/**/*.wav
