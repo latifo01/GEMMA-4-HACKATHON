@@ -1,4 +1,5 @@
 import { AlertTriangle, ClipboardList, ExternalLink, ShieldAlert } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Alert } from "../../components/ui/Alert";
 import { Badge } from "../../components/ui/Badge";
@@ -24,18 +25,24 @@ const loadingSteps = [
 const colorTone: Record<string, "green" | "amber" | "red" | "blue" | "neutral"> = {
   green: "green",
   yellow: "amber",
+  pink: "red",
   red: "red",
 };
 
 export function TriageResult({ meta, result, isLoading }: TriageResultProps) {
+  const elapsedSeconds = useElapsedSeconds(isLoading);
+
   if (isLoading) {
     return (
       <section className="grid min-h-[420px] gap-4 rounded-md border border-slate-200 bg-white p-6 shadow-subtle">
         <div className="grid gap-2">
-          <ClipboardList className="h-8 w-8 text-clinical-blue" aria-hidden="true" />
-          <h2 className="text-lg font-bold text-ink">Running grounded triage</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <ClipboardList className="h-8 w-8 text-clinical-blue" aria-hidden="true" />
+            <Badge tone="neutral">{elapsedSeconds}s</Badge>
+          </div>
+          <h2 className="text-lg font-bold text-ink">Running Gemma 4 triage</h2>
           <p className="text-sm leading-6 text-slate-600">
-            Local optimistic steps are shown while the backend completes the non-streaming workflow.
+            The backend is extracting symptoms, grounding the case, and applying deterministic safety tools.
           </p>
         </div>
         <ol className="grid content-start gap-2">
@@ -68,6 +75,8 @@ export function TriageResult({ meta, result, isLoading }: TriageResultProps) {
 
   const tone = colorTone[result.triage_color?.toLowerCase()] ?? "blue";
   const sessionUrl = `/session/${encodeURIComponent(result.session_id)}`;
+  const evidenceCount = result.citations.length;
+  const toolNames = result.tool_results.map((tool) => String(tool.tool_name ?? tool.name ?? "clinical_tool"));
 
   return (
     <section className="grid gap-4 rounded-md border border-slate-200 bg-white p-5 shadow-subtle">
@@ -80,7 +89,8 @@ export function TriageResult({ meta, result, isLoading }: TriageResultProps) {
             </Badge>
             {meta?.duration_ms ? <Badge tone="neutral">{formatDuration(meta.duration_ms)}</Badge> : null}
           </div>
-          <h2 className="text-xl font-bold tracking-normal text-ink">{result.classification}</h2>
+          <h2 className="text-xl font-bold tracking-normal text-ink">{formatLabel(result.classification)}</h2>
+          <p className="text-sm font-semibold text-slate-700">{getSeverityLabel(result.triage_color)}</p>
         </div>
         <Button type="button" variant="ghost" onClick={() => window.location.assign(sessionUrl)}>
           <ExternalLink className="h-4 w-4" aria-hidden="true" />
@@ -92,6 +102,12 @@ export function TriageResult({ meta, result, isLoading }: TriageResultProps) {
         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
         <span>Clinical decision support only. Final decisions remain with qualified medical staff.</span>
       </Alert>
+
+      <div className="grid gap-2 sm:grid-cols-3">
+        <SummaryTile label="Urgency" value={getSeverityLabel(result.triage_color)} tone={tone} />
+        <SummaryTile label="Evidence" value={`${evidenceCount} IMCI citation${evidenceCount === 1 ? "" : "s"}`} tone="green" />
+        <SummaryTile label="Audit" value={shortSessionId(result.session_id)} tone="neutral" />
+      </div>
 
       <div className="grid gap-2">
         <h3 className="text-sm font-semibold text-slate-800">Recommended actions</h3>
@@ -107,9 +123,22 @@ export function TriageResult({ meta, result, isLoading }: TriageResultProps) {
       <div className="grid gap-2">
         <h3 className="text-sm font-semibold text-slate-800">Reasoning</h3>
         <p className="whitespace-pre-wrap rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm leading-6">
-          {result.translated_output || result.reasoning}
+          {formatClinicalText(result.translated_output || result.reasoning)}
         </p>
       </div>
+
+      {toolNames.length > 0 ? (
+        <div className="grid gap-2">
+          <h3 className="text-sm font-semibold text-slate-800">Clinical trace</h3>
+          <div className="flex flex-wrap gap-2">
+            {toolNames.map((toolName) => (
+              <Badge key={toolName} tone="blue">
+                {formatLabel(toolName)}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {result.missing_information.length > 0 ? (
         <div className="grid gap-2">
@@ -117,7 +146,7 @@ export function TriageResult({ meta, result, isLoading }: TriageResultProps) {
           <div className="flex flex-wrap gap-2">
             {result.missing_information.map((item) => (
               <Badge key={item} tone="amber">
-                {item}
+                {formatLabel(item)}
               </Badge>
             ))}
           </div>
@@ -130,7 +159,7 @@ export function TriageResult({ meta, result, isLoading }: TriageResultProps) {
             <AlertTriangle className="h-4 w-4" aria-hidden="true" />
             Safety flags
           </span>
-          <span>{result.safety_flags.join(", ")}</span>
+          <span>{result.safety_flags.map(formatLabel).join(", ")}</span>
         </Alert>
       ) : null}
 
@@ -150,6 +179,86 @@ export function TriageResult({ meta, result, isLoading }: TriageResultProps) {
       </div>
     </section>
   );
+}
+
+function SummaryTile({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "green" | "amber" | "red" | "blue" | "neutral";
+}) {
+  const toneClass = {
+    green: "border-green-200 bg-green-50 text-green-900",
+    amber: "border-amber-200 bg-amber-50 text-amber-900",
+    red: "border-red-200 bg-red-50 text-red-900",
+    blue: "border-blue-200 bg-blue-50 text-blue-900",
+    neutral: "border-slate-200 bg-slate-50 text-slate-900",
+  }[tone];
+
+  return (
+    <div className={`rounded-md border px-3 py-2 ${toneClass}`}>
+      <div className="text-xs font-semibold uppercase tracking-normal opacity-75">{label}</div>
+      <div className="mt-1 text-sm font-bold leading-5">{value}</div>
+    </div>
+  );
+}
+
+function useElapsedSeconds(isLoading: boolean) {
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setElapsedSeconds(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+    const interval = window.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [isLoading]);
+
+  return elapsedSeconds;
+}
+
+function getSeverityLabel(triageColor: string) {
+  const normalized = triageColor.toLowerCase();
+  if (normalized === "pink" || normalized === "red") {
+    return "Urgent clinical review";
+  }
+  if (normalized === "yellow") {
+    return "Same-day assessment";
+  }
+  if (normalized === "green") {
+    return "Lower-risk guidance";
+  }
+  return "Clinician assessment";
+}
+
+function shortSessionId(sessionId: string) {
+  return sessionId.length > 10 ? `${sessionId.slice(0, 8)}...` : sessionId;
+}
+
+function formatClinicalText(text: string) {
+  return text.replace(/\b[A-Z][A-Z0-9_]{2,}\b/g, (value) => formatLabel(value));
+}
+
+function formatLabel(value: string) {
+  if (value === "IMCI" || value === "RAG") {
+    return value;
+  }
+
+  return value
+    .replace(/^measurements\./, "")
+    .replace(/^context\./, "")
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function formatCitation(citation: Record<string, unknown>) {

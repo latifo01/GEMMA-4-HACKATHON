@@ -20,7 +20,7 @@ class GemmaOnlineClient:
         response = await self._generate_content(
             model=self.model_name,
             contents=prompt,
-            config={"temperature": temperature},
+            config={"temperature": temperature, "max_output_tokens": 512},
         )
 
         return LLMResponse(
@@ -40,6 +40,7 @@ class GemmaOnlineClient:
             contents=prompt,
             config={
                 "temperature": temperature,
+                "max_output_tokens": 256,
                 "response_mime_type": "application/json",
                 "response_json_schema": response_schema,
             },

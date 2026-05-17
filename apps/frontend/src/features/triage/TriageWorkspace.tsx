@@ -33,8 +33,26 @@ const triageSchema = z.object({
 
 export type TriageFormValues = z.infer<typeof triageSchema>;
 
-const defaultTranscript =
-  "Mother says the 18-month-old child has cough and fast breathing. The child can drink.";
+const demoCases = [
+  {
+    label: "Sample",
+    transcript: "Mother says the 18-month-old child has cough and fast breathing. The child can drink.",
+    source_language: "en",
+    respiratory_rate_bpm: 48,
+  },
+  {
+    label: "Danger sign",
+    transcript: "L'enfant presente une forte fievre, vomit plusieurs fois et refuse de boire.",
+    source_language: "fr",
+    respiratory_rate_bpm: undefined,
+  },
+  {
+    label: "Dehydration",
+    transcript: "The child has diarrhea, sunken eyes, is restless, and drinks eagerly.",
+    source_language: "en",
+    respiratory_rate_bpm: undefined,
+  },
+] as const;
 
 export function TriageWorkspace() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -151,9 +169,25 @@ export function TriageWorkspace() {
                 Capture the case, choose the model route, and keep the final decision under human review.
               </p>
             </div>
-            <Button type="button" variant="ghost" onClick={() => setValue("transcript", defaultTranscript, { shouldValidate: true })}>
-              Sample
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {demoCases.map((demoCase) => (
+                <Button
+                  key={demoCase.label}
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setValue("source_language", demoCase.source_language, { shouldValidate: true });
+                    setValue("target_language", "en", { shouldValidate: true });
+                    setValue("model_mode", "auto", { shouldValidate: true });
+                    setValue("age_months", 18, { shouldValidate: true });
+                    setValue("respiratory_rate_bpm", demoCase.respiratory_rate_bpm, { shouldValidate: true });
+                    setValue("transcript", demoCase.transcript, { shouldValidate: true });
+                  }}
+                >
+                  {demoCase.label}
+                </Button>
+              ))}
+            </div>
           </div>
 
           {errorMessage ? <Alert tone="error">{errorMessage}</Alert> : null}
@@ -271,6 +305,23 @@ export function TriageWorkspace() {
           <p className="mt-2 text-sm leading-6 text-slate-600">
             Clinical decision support only. Final decisions remain with qualified medical staff.
           </p>
+        </section>
+        <section className="grid gap-3 rounded-md border border-slate-200 bg-white p-4">
+          <h2 className="text-sm font-semibold text-ink">Demo proof</h2>
+          <ol className="grid gap-2 text-sm leading-6 text-slate-600">
+            <li className="flex items-start gap-2">
+              <Badge tone="blue">Gemma 4</Badge>
+              <span>Extracts multilingual clinical signals.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Badge tone="green">IMCI</Badge>
+              <span>Grounds the recommendation with evidence.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Badge tone="teal">Offline</Badge>
+              <span>Keeps the same workflow deployable in the field.</span>
+            </li>
+          </ol>
         </section>
         <TriageResult result={result} meta={resultMeta} isLoading={triageMutation.isPending} />
       </div>
