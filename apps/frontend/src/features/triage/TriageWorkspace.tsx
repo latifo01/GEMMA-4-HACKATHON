@@ -17,6 +17,7 @@ import { useAudioTranscription } from "../audio/useAudioTranscription";
 import { useVideoAnalysis } from "../video/useVideoAnalysis";
 import { VideoUpload } from "../video/VideoUpload";
 import { getErrorMessage } from "../../lib/errors";
+import type { TriageRequest } from "../../types/triage";
 import { TriageResult } from "./TriageResult";
 import { useTriageStream } from "./useTriageStream";
 
@@ -56,6 +57,7 @@ export function TriageWorkspace() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [lastRequest, setLastRequest] = useState<TriageRequest | null>(null);
 
   const health = useBackendHealth();
   const audioMutation = useAudioTranscription();
@@ -93,7 +95,7 @@ export function TriageWorkspace() {
     setLocalError(null);
     triageStream.reset();
 
-    await triageStream.run({
+    const request: TriageRequest = {
       transcript: values.transcript,
       source_language: values.source_language,
       target_language: values.target_language,
@@ -101,8 +103,14 @@ export function TriageWorkspace() {
       patient: { age_months: values.age_months, sex: "unknown" },
       measurements: { respiratory_rate_bpm: values.respiratory_rate_bpm },
       context: { setting: "low_resource_clinic", frontend: "vercel_demo" },
-    });
+    };
+    setLastRequest(request);
+    await triageStream.run(request);
   });
+
+  function handleRefine(enrichedRequest: TriageRequest) {
+    triageStream.run(enrichedRequest);
+  }
 
   async function handleTranscribe() {
     if (!audioFile) {
@@ -313,6 +321,8 @@ export function TriageWorkspace() {
           meta={null}
           isLoading={isRunning}
           streamNodes={triageStream.nodes}
+          lastRequest={lastRequest}
+          onRefine={handleRefine}
         />
       </div>
     </div>

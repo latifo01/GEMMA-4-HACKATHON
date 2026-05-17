@@ -7,14 +7,17 @@ import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { formatDuration } from "../../lib/format";
 import type { ApiMeta } from "../../types/api";
-import type { TriageResultData } from "../../types/triage";
+import type { TriageRequest, TriageResultData } from "../../types/triage";
 import type { NodeStatus, StreamNode } from "./useTriageStream";
+import { RefineDiagnosisPanel } from "./RefineDiagnosisPanel";
 
 type TriageResultProps = {
   meta: ApiMeta | null;
   result: TriageResultData | null;
   isLoading: boolean;
   streamNodes?: Record<StreamNode, NodeStatus>;
+  lastRequest?: TriageRequest | null;
+  onRefine?: (enrichedRequest: TriageRequest) => void;
 };
 
 const NODE_LABELS: Record<StreamNode, string> = {
@@ -40,7 +43,7 @@ const sectionStyle: Record<string, string> = {
   green: "border-green-400 bg-green-50",
 };
 
-export function TriageResult({ meta, result, isLoading, streamNodes }: TriageResultProps) {
+export function TriageResult({ meta, result, isLoading, streamNodes, lastRequest, onRefine }: TriageResultProps) {
   const elapsedSeconds = useElapsedSeconds(isLoading);
 
   if (isLoading) {
@@ -167,6 +170,14 @@ export function TriageResult({ meta, result, isLoading, streamNodes }: TriageRes
               </Badge>
             ))}
           </div>
+          {lastRequest && onRefine ? (
+            <RefineDiagnosisPanel
+              result={result}
+              lastRequest={lastRequest}
+              onRefine={onRefine}
+              isDisabled={isLoading}
+            />
+          ) : null}
         </div>
       ) : null}
 
