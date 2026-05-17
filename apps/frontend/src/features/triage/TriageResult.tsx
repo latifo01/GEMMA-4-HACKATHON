@@ -1,6 +1,7 @@
 import { AlertTriangle, ClipboardList, ExternalLink, ShieldAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { env } from "../../app/env";
 import { Alert } from "../../components/ui/Alert";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
@@ -226,7 +227,9 @@ function CitationCard({ citation }: { citation: Record<string, unknown> }) {
   const title = String(citation.title ?? citation.source ?? "IMCI reference");
   const page = citation.page ? ` · page ${String(citation.page)}` : "";
   const excerpt = String(citation.text ?? citation.excerpt ?? citation.quote ?? "");
-  const imageUrl = citation.image_url ? String(citation.image_url) : null;
+  const imageUrl = citation.image_url
+    ? `${env.apiBaseUrl}${String(citation.image_url)}`
+    : null;
   const score = typeof citation.relevance_score === "number" ? citation.relevance_score : null;
 
   return (
@@ -247,7 +250,7 @@ function CitationCard({ citation }: { citation: Record<string, unknown> }) {
           <div className="mt-1.5 flex items-center gap-2">
             <div className="h-1 flex-1 rounded bg-slate-200">
               <div
-                className="h-1 rounded bg-blue-400 transition-all duration-500"
+                className={`h-1 rounded transition-all duration-500 ${score >= 0.6 ? "bg-green-400" : score >= 0.35 ? "bg-amber-400" : "bg-rose-400"}`}
                 style={{ width: `${Math.round(score * 100)}%` }}
               />
             </div>
