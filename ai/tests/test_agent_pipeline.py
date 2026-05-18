@@ -54,9 +54,11 @@ class FailingJsonLLM(FakeLLM):
 class FakeStore:
     def __init__(self) -> None:
         self.queries: list[str] = []
+        self.include_visual_embeddings: list[bool] = []
 
-    def query(self, query_text: str, top_k: int = 5) -> list[dict[str, Any]]:
+    def query(self, query_text: str, top_k: int = 5, include_visual_embeddings: bool = False) -> list[dict[str, Any]]:
         self.queries.append(query_text)
+        self.include_visual_embeddings.append(include_visual_embeddings)
         return [
             {
                 "chunk_id": "imci-chart-booklet-p006-c000",
@@ -121,6 +123,7 @@ async def test_pipeline_returns_grounded_pneumonia_result_with_citations():
     assert result["tool_results"]
     assert "PNEUMONIA" in result["translated_output"]
     assert "cough_or_difficult_breathing" in store.queries[0]
+    assert store.include_visual_embeddings == [True]
 
 
 @pytest.mark.asyncio

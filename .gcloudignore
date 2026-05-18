@@ -22,7 +22,6 @@ build
 playwright-report
 test-results
 
-data/chroma/
 data/audio_tmp/
 data/video_tmp/
 data/*.db

@@ -119,44 +119,41 @@ then redeploy Vercel.
 
 ## Demo Performance Notes
 
-The current Cloud Run config uses:
+The current Cloud Run demo config uses:
 
 ```txt
 CPU: 2
 Memory: 2Gi
 Timeout: 300 seconds
 Concurrency: 4
-Min instances: 0
+Min instances: 1
 Max instances: 3
 ```
 
-For the jury demo, set `--min-instances` to `1` if credits allow it. This avoids cold starts and
-makes the first request feel much more reliable.
+`--min-instances=1` is intentional for the jury demo. It avoids cold starts and makes the first
+request feel much more reliable. Set it back to `0` after the hackathon if cost becomes more
+important than live-demo stability.
 
 ## RAG Data Caveat
 
-Cloud Run instances have an ephemeral writable filesystem. The current deployment uses `/tmp` for
-runtime files:
+Cloud Run instances have an ephemeral writable filesystem. The current demo deployment avoids this
+for RAG by packaging the local Chroma index and rendered page images into the backend image:
 
 ```env
-CHROMA_PATH=/tmp/chroma
-RAG_VISUAL_ASSETS_PATH=/tmp/page_images
+CHROMA_PATH=/app/data/chroma
+RAG_VISUAL_ASSETS_PATH=/app/data/page_images
 DB_PATH=/tmp/imciflow.db
 ```
 
-The backend includes a small embedded IMCI evidence fallback so public demos can still return
-auditable citations when the Chroma index is missing. This is not a replacement for the full
-multimodal RAG index.
+`DB_PATH` stays in `/tmp` because the hackathon demo only needs session audit during the running
+instance lifetime. The backend still includes a small embedded IMCI evidence fallback, but the main
+Cloud Run demo path now uses the packaged Chroma index.
 
-For the final demo, choose one of these paths:
+For a post-hackathon product, choose one of these paths:
 
-1. Build a small licensed demo RAG index into the Docker image.
-2. Load the RAG index from Cloud Storage at startup.
-3. Move vector retrieval to a managed service such as Vertex AI Vector Search or another hosted
+1. Load the RAG index from Cloud Storage at startup.
+2. Move vector retrieval to a managed service such as Vertex AI Vector Search or another hosted
    vector database.
-
-Until that is done, Cloud Run can answer with fallback evidence, but full PDF/page-image retrieval
-will still require one of the paths above.
 
 ## Troubleshooting
 

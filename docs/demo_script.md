@@ -44,4 +44,13 @@ The demo emphasizes decision support, auditability, multilingual access, and res
 - `/audio/transcribe` works locally.
 - `/triage/run` returns grounded output.
 - `/sessions/{session_id}` returns the audit record.
+- `scripts/evaluate_clinical_cases.py` currently reports `15/15` deterministic IMCI demo cases
+  passing.
+- Cloud Run packages the Chroma IMCI index and rendered page images for the public demo.
 
+## Honest Demo Language
+
+- Say "guided progress trace" unless the frontend is changed to consume `/triage/run/stream`.
+- Say "offline-ready architecture" for the public Vercel demo, then show the local Ollama path as a
+  separate field deployment proof.
+- Say "clinical decision support" and never "autonomous diagnosis".

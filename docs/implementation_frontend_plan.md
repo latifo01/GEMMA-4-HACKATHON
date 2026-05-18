@@ -49,14 +49,15 @@ Important backend facts:
 - `/audio/transcribe` accepts `multipart/form-data`.
 - `/video/analyze` accepts `multipart/form-data`.
 - `/sessions/{session_id}` returns the stored audit session.
-- `/triage/run/stream` is documented but not currently implemented. Do not build an SSE UI until
-  that endpoint exists.
+- `/triage/run/stream` exists on the backend for SSE progress events.
+- The current frontend uses a stable guided progress animation around `/triage/run`; do not pitch it
+  as real SSE unless the frontend is switched to consume `/triage/run/stream`.
 
 Before frontend deployment, verify:
 
 - Backend CORS allows the Vercel frontend origin.
 - Deployed backend has `GOOGLE_AI_API_KEY`.
-- Deployed backend has a populated RAG index.
+- Deployed backend has a populated RAG index at `CHROMA_PATH=/app/data/chroma`.
 - Deployed backend `/health` returns `selected_model_mode: "online"` for the main demo.
 
 ## 4. UX Principles

@@ -1,0 +1,167 @@
+[
+  {
+    "id": "danger_refuses_to_drink_fever",
+    "transcript": "L'enfant presente une forte fievre, vomit plusieurs fois et refuse de boire.",
+    "source_language": "fr",
+    "patient": {"age_months": 18, "sex": "unknown"},
+    "measurements": {},
+    "context": {},
+    "symptoms": {"fever": true, "unable_to_drink_or_breastfeed": true, "modules": ["fever", "diarrhea_dehydration"]},
+    "expected_classification": "GENERAL_DANGER_SIGN",
+    "expected_triage_color": "PINK"
+  },
+  {
+    "id": "severe_pneumonia_general_danger",
+    "transcript": "The child has cough, difficult breathing, and cannot drink.",
+    "source_language": "en",
+    "patient": {"age_months": 10, "sex": "unknown"},
+    "measurements": {"respiratory_rate_bpm": 38},
+    "context": {},
+    "symptoms": {"cough": true, "difficult_breathing": true, "unable_to_drink_or_breastfeed": true, "modules": ["cough_or_difficult_breathing"]},
+    "expected_classification": "GENERAL_DANGER_SIGN",
+    "expected_triage_color": "PINK"
+  },
+  {
+    "id": "pneumonia_fast_breathing_18m",
+    "transcript": "The 18-month-old child has cough and fast breathing but drinks normally.",
+    "source_language": "en",
+    "patient": {"age_months": 18, "sex": "unknown"},
+    "measurements": {"respiratory_rate_bpm": 48},
+    "context": {},
+    "symptoms": {"cough": true, "difficult_breathing": true, "modules": ["cough_or_difficult_breathing"]},
+    "expected_classification": "PNEUMONIA",
+    "expected_triage_color": "YELLOW"
+  },
+  {
+    "id": "pneumonia_chest_indrawing",
+    "transcript": "The child has cough, difficult breathing, and chest indrawing.",
+    "source_language": "en",
+    "patient": {"age_months": 20, "sex": "unknown"},
+    "measurements": {"respiratory_rate_bpm": 30},
+    "context": {},
+    "symptoms": {"cough": true, "difficult_breathing": true, "chest_indrawing": true, "modules": ["cough_or_difficult_breathing"]},
+    "expected_classification": "PNEUMONIA",
+    "expected_triage_color": "YELLOW"
+  },
+  {
+    "id": "cough_or_cold_no_fast_breathing",
+    "transcript": "The child has cough but no difficult breathing and can drink.",
+    "source_language": "en",
+    "patient": {"age_months": 24, "sex": "unknown"},
+    "measurements": {"respiratory_rate_bpm": 28},
+    "context": {},
+    "symptoms": {"cough": true, "modules": ["cough_or_difficult_breathing"]},
+    "expected_classification": "COUGH_OR_COLD",
+    "expected_triage_color": "GREEN"
+  },
+  {
+    "id": "respiratory_missing_rate",
+    "transcript": "The child has cough and difficult breathing.",
+    "source_language": "en",
+    "patient": {"age_months": 18, "sex": "unknown"},
+    "measurements": {},
+    "context": {},
+    "symptoms": {"cough": true, "difficult_breathing": true, "modules": ["cough_or_difficult_breathing"]},
+    "expected_classification": "UNABLE_TO_CLASSIFY_RESPIRATORY_RATE",
+    "expected_triage_color": "YELLOW"
+  },
+  {
+    "id": "severe_dehydration",
+    "transcript": "The child has diarrhea, is lethargic, has sunken eyes, and cannot drink well.",
+    "source_language": "en",
+    "patient": {"age_months": 16, "sex": "unknown"},
+    "measurements": {},
+    "context": {},
+    "symptoms": {"diarrhea": true, "lethargic_or_unconscious": true, "sunken_eyes": true, "unable_to_drink_or_breastfeed": true, "modules": ["diarrhea_dehydration"]},
+    "expected_classification": "GENERAL_DANGER_SIGN",
+    "expected_triage_color": "PINK"
+  },
+  {
+    "id": "some_dehydration",
+    "transcript": "The child has diarrhea, sunken eyes, is restless, and drinks eagerly.",
+    "source_language": "en",
+    "patient": {"age_months": 14, "sex": "unknown"},
+    "measurements": {},
+    "context": {},
+    "symptoms": {"diarrhea": true, "sunken_eyes": true, "restless_or_irritable": true, "drinks_eagerly_or_thirsty": true, "modules": ["diarrhea_dehydration"]},
+    "expected_classification": "SOME_DEHYDRATION",
+    "expected_triage_color": "YELLOW"
+  },
+  {
+    "id": "no_dehydration",
+    "transcript": "The child has diarrhea but is alert, has normal eyes, and drinks normally.",
+    "source_language": "en",
+    "patient": {"age_months": 30, "sex": "unknown"},
+    "measurements": {},
+    "context": {},
+    "symptoms": {"diarrhea": true, "modules": ["diarrhea_dehydration"]},
+    "expected_classification": "NO_DEHYDRATION",
+    "expected_triage_color": "GREEN"
+  },
+  {
+    "id": "basic_fever",
+    "transcript": "The child has fever for one day and no danger signs.",
+    "source_language": "en",
+    "patient": {"age_months": 18, "sex": "unknown"},
+    "measurements": {"temperature_celsius": 38.2},
+    "context": {"fever_duration_days": 1},
+    "symptoms": {"fever": true, "modules": ["fever"]},
+    "expected_classification": "FEVER",
+    "expected_triage_color": "GREEN"
+  },
+  {
+    "id": "prolonged_fever",
+    "transcript": "The child has fever every day for eight days.",
+    "source_language": "en",
+    "patient": {"age_months": 36, "sex": "unknown"},
+    "measurements": {"temperature_celsius": 38.7},
+    "context": {"fever_duration_days": 8},
+    "symptoms": {"fever": true, "modules": ["fever"]},
+    "expected_classification": "PROLONGED_FEVER",
+    "expected_triage_color": "YELLOW"
+  },
+  {
+    "id": "fever_with_convulsions",
+    "transcript": "The child has fever and convulsions.",
+    "source_language": "en",
+    "patient": {"age_months": 22, "sex": "unknown"},
+    "measurements": {"temperature_celsius": 39.0},
+    "context": {"fever_duration_days": 1},
+    "symptoms": {"fever": true, "convulsions": true, "modules": ["fever"]},
+    "expected_classification": "GENERAL_DANGER_SIGN",
+    "expected_triage_color": "PINK"
+  },
+  {
+    "id": "stridor_in_calm_child",
+    "transcript": "The child has cough, difficult breathing, and stridor when calm.",
+    "source_language": "en",
+    "patient": {"age_months": 18, "sex": "unknown"},
+    "measurements": {"respiratory_rate_bpm": 30},
+    "context": {},
+    "symptoms": {"cough": true, "difficult_breathing": true, "stridor_in_calm_child": true, "modules": ["cough_or_difficult_breathing"]},
+    "expected_classification": "SEVERE_PNEUMONIA_OR_VERY_SEVERE_DISEASE",
+    "expected_triage_color": "PINK"
+  },
+  {
+    "id": "vague_abdominal_pain",
+    "transcript": "The child has abdominal pain since yesterday.",
+    "source_language": "en",
+    "patient": {"age_months": 48, "sex": "unknown"},
+    "measurements": {},
+    "context": {},
+    "symptoms": {"modules": ["unknown"]},
+    "expected_classification": "NEEDS_CLINICIAN_ASSESSMENT",
+    "expected_triage_color": "YELLOW"
+  },
+  {
+    "id": "french_cough_fast_breathing",
+    "transcript": "L'enfant tousse et respire vite, mais il peut boire.",
+    "source_language": "fr",
+    "patient": {"age_months": 12, "sex": "unknown"},
+    "measurements": {"respiratory_rate_bpm": 44},
+    "context": {},
+    "symptoms": {"cough": true, "difficult_breathing": true, "modules": ["cough_or_difficult_breathing"]},
+    "expected_classification": "PNEUMONIA",
+    "expected_triage_color": "YELLOW"
+  }
+]

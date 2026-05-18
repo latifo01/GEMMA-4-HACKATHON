@@ -52,9 +52,9 @@ steps:
       - --max-instances
       - "3"
       - --min-instances
-      - "0"
+      - "1"
       - --set-env-vars
-      - ^@^APP_ENV=production@GEMMA_ONLINE_MODEL=models/gemma-4-26b-a4b-it@FRONTEND_ORIGIN=https://gemma-4-hackathon.vercel.app,https://gemma-4-hackathon-git-main-ibrahim-youssouf-abdelatifs-projects.vercel.app@CHROMA_PATH=/tmp/chroma@RAG_VISUAL_ASSETS_PATH=/app/data/page_images@DB_PATH=/tmp/imciflow.db@WHISPER_DEVICE=cpu@WHISPER_COMPUTE_TYPE=int8@AUDIO_TEMP_DIR=/tmp/audio_tmp@VIDEO_TEMP_DIR=/tmp/video_tmp@OLLAMA_BASE_URL=http://localhost:11434@GEMMA_OFFLINE_MODEL=gemma3:1b
+      - ^@^APP_ENV=production@GEMMA_ONLINE_MODEL=models/gemma-4-26b-a4b-it@FRONTEND_ORIGIN=https://gemma-4-hackathon.vercel.app,https://gemma-4-hackathon-git-main-ibrahim-youssouf-abdelatifs-projects.vercel.app@CHROMA_PATH=/app/data/chroma@RAG_VISUAL_ASSETS_PATH=/app/data/page_images@DB_PATH=/tmp/imciflow.db@WHISPER_DEVICE=cpu@WHISPER_COMPUTE_TYPE=int8@AUDIO_TEMP_DIR=/tmp/audio_tmp@VIDEO_TEMP_DIR=/tmp/video_tmp@OLLAMA_BASE_URL=http://localhost:11434@GEMMA_OFFLINE_MODEL=gemma3:1b
       - --set-secrets
       - GOOGLE_AI_API_KEY=google-ai-api-key:latest
 

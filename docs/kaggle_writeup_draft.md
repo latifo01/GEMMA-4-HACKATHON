@@ -27,6 +27,9 @@ IMCI documents are ingested into persistent vector indexes with metadata for sou
 type, section, and content hash. Retrieval supports text, tables, and page-image chunks, followed
 by reranking and citation-aware context injection.
 
+For the public demo, the Cloud Run image packages the local Chroma IMCI index and rendered page
+images so citations are not limited to the embedded fallback evidence.
+
 ## Safety
 
 The system is not autonomous diagnosis software. It is a decision-support backend. Deterministic
@@ -36,3 +39,10 @@ clinical tools handle safety-critical rules, and every output requires human rev
 
 The demo shows a multilingual caregiver interaction, grounded triage output, citations, and an
 offline mode fallback.
+
+## Evaluation
+
+The repository includes `tests/fixtures/clinical_eval_cases.json` and
+`scripts/evaluate_clinical_cases.py`. The current deterministic IMCI demo evaluation covers 15
+cases across danger signs, cough or difficult breathing, dehydration, fever, vague complaints, and
+French intake.

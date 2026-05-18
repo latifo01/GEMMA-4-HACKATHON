@@ -30,11 +30,16 @@ Primary demo deployment:
 - Frontend on Vercel via GitHub.
 - Gemma 4 online as the primary demo route, with offline mode presented as the field-resilience
   architecture.
+- The Cloud Run demo now packages the local Chroma IMCI index and rendered IMCI page images.
+- Offline mode is an architecture and local deployment proof using Ollama, not the public Cloud
+  Run runtime.
 
-Next product phase:
+Current demo hardening:
 
-- Deploy the backend on Google Cloud Run, point Vercel to the Cloud Run URL, then improve clinical
-  extraction quality, RAG relevance, and first-response latency before the jury rehearsal.
+- The triage pipeline queries visual embeddings when the vector store supports them.
+- `scripts/evaluate_clinical_cases.py` evaluates 15 deterministic IMCI demo cases without paid
+  model calls.
+- Cloud Run keeps one warm instance during the jury demo to reduce cold-start risk.
 
 Completed backend phases:
 
@@ -52,8 +57,17 @@ Completed backend phases:
 - Phase 9: `POST /video/analyze` returns supportive respiratory-rate evidence for Gemma triage.
 - Phase 10: Gemma 4-first smoke tests, Docker packaging, and backend demo readiness checks.
 
-Frontend implementation can start. The Gemma 4 proof path remains the online smoke test; local
-offline is an optional resilience check for this machine.
+Clinical demo evaluation:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\evaluate_clinical_cases.py
+```
+
+Expected current result:
+
+```txt
+Clinical eval: 15/15 passed (100%)
+```
 
 ## Core Documents
 

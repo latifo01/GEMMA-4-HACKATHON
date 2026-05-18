@@ -12,11 +12,18 @@ _PAGE_IMAGES_URL = "/images"
 def retrieve_rag_context(state: TriageState, vector_store: Any, top_k: int = 5) -> TriageState:
     query = build_retrieval_query(state)
     state.retrieval_query = query
-    state.rag_context = vector_store.query(query, top_k=top_k)
+    state.rag_context = query_vector_store(vector_store, query, top_k=top_k)
     if not state.rag_context:
         state.rag_context = query_fallback_evidence(query, top_k=top_k)
     state.citations = [to_citation(item) for item in state.rag_context]
     return state
+
+
+def query_vector_store(vector_store: Any, query: str, top_k: int) -> list[dict[str, Any]]:
+    try:
+        return vector_store.query(query, top_k=top_k, include_visual_embeddings=True)
+    except TypeError:
+        return vector_store.query(query, top_k=top_k)
 
 
 def build_retrieval_query(state: TriageState) -> str:
