@@ -14,7 +14,8 @@ limited internet, and limited time to search paper IMCI protocols.
 
 ### 0:25-0:55 Intake
 
-The nurse records audio or enters a transcript. The backend transcribes audio locally when used.
+The nurse dictates through the microphone, uploads audio, or enters a transcript. The backend
+transcribes audio locally when file upload is used.
 
 ### 0:55-1:25 Clinical Extraction
 
@@ -27,8 +28,8 @@ danger sign flags. The model produces grounded reasoning with citations.
 
 ### 1:55-2:25 Output
 
-The backend returns triage color, classification, recommendations, citations, safety flags, and
-translated caregiver explanation.
+The interface shows the triage decision first, then immediate actions, Gemma 4 synthesis, IMCI
+evidence, safety flags, and translated caregiver explanation.
 
 ### 2:25-2:50 Offline Resilience
 

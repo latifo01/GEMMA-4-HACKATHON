@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ClipboardCheck, PlayCircle } from "lucide-react";
-import { useState } from "react";
+import { ClipboardCheck, Mic, MicOff, PlayCircle } from "lucide-react";
+import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -19,6 +19,7 @@ import { VideoUpload } from "../video/VideoUpload";
 import { getErrorMessage } from "../../lib/errors";
 import type { TriageRequest } from "../../types/triage";
 import { TriageResult } from "./TriageResult";
+import { useSpeechDictation } from "./useSpeechDictation";
 import { useTriageStream } from "./useTriageStream";
 
 const triageSchema = z.object({
@@ -66,6 +67,7 @@ export function TriageWorkspace() {
 
   const {
     formState: { errors },
+    getValues,
     handleSubmit,
     register,
     setValue,
@@ -90,6 +92,15 @@ export function TriageWorkspace() {
     getMutationError(videoMutation.error);
 
   const isRunning = triageStream.isStreaming;
+  const handleDictatedText = useCallback(
+    (text: string) => {
+      const current = getValues("transcript").trim();
+      const nextValue = current ? `${current} ${text}` : text;
+      setValue("transcript", nextValue, { shouldDirty: true, shouldValidate: true });
+    },
+    [getValues, setValue],
+  );
+  const speech = useSpeechDictation({ onFinalText: handleDictatedText });
 
   const onSubmit = handleSubmit(async (values) => {
     setLocalError(null);
@@ -156,7 +167,7 @@ export function TriageWorkspace() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,0.94fr)_minmax(430px,1.06fr)]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(340px,0.82fr)_minmax(540px,1.18fr)]">
       <form className="grid gap-4" onSubmit={onSubmit}>
         <section className="grid gap-4 rounded-md border border-slate-200 bg-white p-5 shadow-subtle">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -215,10 +226,41 @@ export function TriageWorkspace() {
             hint="The backend clinical tools and IMCI retrieval are disease-oriented, not limited to pneumonia."
             error={errors.transcript?.message}
           >
-            <textarea
-              className="min-h-40 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm leading-6 text-ink outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              {...register("transcript")}
-            />
+            <div className="grid gap-2">
+              <div className="relative">
+                <textarea
+                  className="min-h-44 w-full rounded-md border border-slate-300 bg-white px-3 py-2 pr-14 text-sm leading-6 text-ink outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  {...register("transcript")}
+                />
+                <Button
+                  type="button"
+                  variant={speech.isListening ? "danger" : "secondary"}
+                  className="absolute right-2 top-2 h-10 w-10 p-0"
+                  onClick={() => {
+                    if (speech.isListening) {
+                      speech.stop();
+                    } else {
+                      speech.start(formValues.source_language);
+                    }
+                  }}
+                  disabled={!speech.isSupported}
+                  aria-label={speech.isListening ? "Stop live dictation" : "Start live dictation"}
+                  title={speech.isSupported ? "Live dictation" : "Live dictation is not supported in this browser"}
+                >
+                  {speech.isListening ? (
+                    <MicOff className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Mic className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </Button>
+              </div>
+              {speech.isListening ? (
+                <Alert tone="info" className="py-2">
+                  Listening through the microphone{speech.interimText ? `: ${speech.interimText}` : "."}
+                </Alert>
+              ) : null}
+              {speech.error ? <Alert tone="warning">{speech.error}</Alert> : null}
+            </div>
           </Field>
 
           <Field label="Respiratory rate" hint="Optional. Video analysis can fill this value." error={errors.respiratory_rate_bpm?.message}>
