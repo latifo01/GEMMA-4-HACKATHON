@@ -109,7 +109,11 @@ export function TriageWorkspace() {
   });
 
   function handleRefine(enrichedRequest: TriageRequest) {
-    triageStream.run(enrichedRequest);
+    // session_id from result is a PRIMARY KEY — passing it again causes a DB constraint error.
+    // Clear it so the backend generates a fresh UUID, and update lastRequest for chained refines.
+    const request: TriageRequest = { ...enrichedRequest, session_id: null };
+    setLastRequest(request);
+    triageStream.run(request);
   }
 
   async function handleTranscribe() {
