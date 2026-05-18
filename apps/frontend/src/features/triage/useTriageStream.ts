@@ -29,19 +29,8 @@ const ALL_NODES: StreamNode[] = [
   "translation",
 ];
 
-// Realistic per-node display durations (ms). The animation runs in parallel
-// with the actual API request; Promise.all waits for whichever is slower.
-const NODE_TIMINGS: Array<[StreamNode, number]> = [
-  ["intake", 400],
-  ["symptom_extraction", 2200],
-  ["rag_retrieval", 1400],
-  ["imci_reasoning", 1200],
-  ["verification", 700],
-  ["translation", 800],
-];
-
 function initialNodes(): Record<StreamNode, NodeStatus> {
-  return Object.fromEntries(ALL_NODES.map((n) => [n, "pending"])) as Record<
+  return Object.fromEntries(ALL_NODES.map((node) => [node, "pending"])) as Record<
     StreamNode,
     NodeStatus
   >;
@@ -64,9 +53,8 @@ export function useTriageStream() {
 
     setState({ nodes: initialNodes(), result: null, error: null, isStreaming: true });
 
-    // ── Real API call (non-streaming, proven stable) ─────────────────────────
-    const fetchResult = async (): Promise<TriageResultData> => {
-      const response = await fetch(`${env.apiBaseUrl}/triage/run`, {
+    try {
+      const response = await fetch(`${env.apiBaseUrl}/triage/run/stream`, {
         method: "POST",
         signal: controller.signal,
         headers: {
@@ -75,40 +63,55 @@ export function useTriageStream() {
         },
         body: JSON.stringify(request),
       });
+
       if (!response.ok) {
         const text = await response.text().catch(() => "Request failed");
         throw new Error(text);
       }
-      const json = (await response.json()) as { data: TriageResultData };
-      return json.data;
-    };
 
-    // ── Visual progress animation (runs in parallel with the real call) ──────
-    const animateNodes = async (): Promise<void> => {
-      for (const [node, duration] of NODE_TIMINGS) {
-        if (controller.signal.aborted) return;
-        setState((s) => ({ ...s, nodes: { ...s.nodes, [node]: "running" } }));
-        await new Promise<void>((resolve) => {
-          const id = setTimeout(resolve, duration);
-          controller.signal.addEventListener("abort", () => {
-            clearTimeout(id);
-            resolve();
-          }, { once: true });
-        });
-        if (controller.signal.aborted) return;
-        setState((s) => ({ ...s, nodes: { ...s.nodes, [node]: "completed" } }));
+      if (!response.body) {
+        throw new Error("Streaming response body is unavailable.");
       }
-    };
 
-    // ── Race both; show result when both complete ────────────────────────────
-    try {
-      const [result] = await Promise.all([fetchResult(), animateNodes()]);
+      await readSseStream(response.body, controller.signal, (eventType, data) => {
+        if (eventType === "node_started" && isStreamNode(data.node)) {
+          const node = data.node;
+          setState((current) => ({
+            ...current,
+            nodes: { ...current.nodes, [node]: "running" },
+          }));
+          return;
+        }
+
+        if (eventType === "node_completed" && isStreamNode(data.node)) {
+          const node = data.node;
+          setState((current) => ({
+            ...current,
+            nodes: { ...current.nodes, [node]: "completed" },
+          }));
+          return;
+        }
+
+        if (eventType === "result") {
+          setState((current) => ({
+            ...current,
+            isStreaming: false,
+            result: data.data as TriageResultData,
+          }));
+          return;
+        }
+
+        if (eventType === "error") {
+          throw new Error(String(data.message ?? "Stream error"));
+        }
+      });
+
       if (controller.signal.aborted) return;
-      setState((s) => ({ ...s, isStreaming: false, result }));
+      setState((current) => ({ ...current, isStreaming: false }));
     } catch (err) {
       if (controller.signal.aborted) return;
       const message = err instanceof Error ? err.message : String(err);
-      setState((s) => ({ ...s, isStreaming: false, error: message }));
+      setState((current) => ({ ...current, isStreaming: false, error: message }));
     }
   }, []);
 
@@ -119,4 +122,52 @@ export function useTriageStream() {
   }, []);
 
   return { ...state, run, reset };
+}
+
+async function readSseStream(
+  body: ReadableStream<Uint8Array>,
+  signal: AbortSignal,
+  onEvent: (eventType: string, data: Record<string, unknown>) => void,
+) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    while (!signal.aborted) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const blocks = buffer.split("\n\n");
+      buffer = blocks.pop() ?? "";
+
+      for (const block of blocks) {
+        const parsed = parseSseBlock(block);
+        if (parsed) {
+          onEvent(parsed.eventType, parsed.data);
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+function parseSseBlock(block: string) {
+  const eventLine = block.split("\n").find((line) => line.startsWith("event:"));
+  const dataLine = block.split("\n").find((line) => line.startsWith("data:"));
+
+  if (!eventLine || !dataLine) {
+    return null;
+  }
+
+  return {
+    eventType: eventLine.slice("event:".length).trim(),
+    data: JSON.parse(dataLine.slice("data:".length).trim()) as Record<string, unknown>,
+  };
+}
+
+function isStreamNode(value: unknown): value is StreamNode {
+  return typeof value === "string" && ALL_NODES.includes(value as StreamNode);
 }

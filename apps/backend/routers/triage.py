@@ -144,14 +144,17 @@ async def stream_triage(
                 )
             ):
                 event_type = event.pop("event", "message")
-                payload = json.dumps(event, default=str)
-                yield f"event: {event_type}\ndata: {payload}\n\n"
-
                 if event_type == "result":
                     result_data = TriageResultData(
                         session_id=audit_session.session_id,
                         **event.get("data", {}),
                     ).model_dump(mode="json")
+                    event["data"] = result_data
+
+                payload = json.dumps(event, default=str)
+                yield f"event: {event_type}\ndata: {payload}\n\n"
+
+                if event_type == "result":
                     model_mode = result_data.get("model", {}).get("mode", "unavailable")
                     await update_session(
                         db_session=db_session,

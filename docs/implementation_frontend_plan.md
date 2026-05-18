@@ -50,8 +50,8 @@ Important backend facts:
 - `/video/analyze` accepts `multipart/form-data`.
 - `/sessions/{session_id}` returns the stored audit session.
 - `/triage/run/stream` exists on the backend for SSE progress events.
-- The current frontend uses a stable guided progress animation around `/triage/run`; do not pitch it
-  as real SSE unless the frontend is switched to consume `/triage/run/stream`.
+- The current frontend consumes `/triage/run/stream` and lights up the reasoning trace from real
+  backend node events.
 
 Before frontend deployment, verify:
 
@@ -554,7 +554,8 @@ Applying safety checks
 Saving audit session
 ```
 
-Since backend streaming is not implemented, animate these as local optimistic steps.
+The triage loading state should consume `/triage/run/stream`; local optimistic animation is only a
+fallback if the streaming endpoint is unavailable.
 
 ## 19. Error Handling
 

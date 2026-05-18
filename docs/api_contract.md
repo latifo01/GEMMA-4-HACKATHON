@@ -293,11 +293,8 @@ data: {"node":"symptom_extraction"}
 event: node_completed
 data: {"node":"symptom_extraction"}
 
-event: token
-data: {"token":"The child has"}
-
 event: result
-data: {"session_id":"uuid","triage_color":"YELLOW"}
+data: {"data":{"session_id":"uuid","triage_color":"YELLOW"}}
 
 event: error
 data: {"code":"MODEL_UNAVAILABLE","message":"No model available"}

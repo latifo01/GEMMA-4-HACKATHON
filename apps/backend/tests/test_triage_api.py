@@ -1,4 +1,5 @@
 import asyncio
+import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -39,6 +40,13 @@ class FakePipeline:
             "model": {"mode": "online", "name": "fake-gemma"},
             "errors": [],
         }
+
+    async def stream(self, request):
+        result = await self.run(request)
+        yield {"event": "node_completed", "node": "intake", "data": {}}
+        yield {"event": "node_started", "node": "symptom_extraction"}
+        yield {"event": "node_completed", "node": "symptom_extraction", "data": {"symptoms": {"cough": True}}}
+        yield {"event": "result", "data": result}
 
 
 class FailingPipeline:
@@ -169,3 +177,45 @@ def test_triage_api_persists_failed_session(tmp_path):
     audit_record = asyncio.run(load_session())
     assert audit_record["status"] == "failed"
     assert audit_record["errors"][0]["code"] == "TRIAGE_VERIFICATION_FAILED"
+
+
+def test_triage_stream_returns_sse_events_and_persists_session(tmp_path):
+    settings = make_settings(tmp_path)
+    pipeline = FakePipeline()
+    app = make_app(settings, pipeline)
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/triage/run/stream",
+            json={
+                "transcript": "The child has cough and fast breathing.",
+                "source_language": "en",
+                "target_language": "fr",
+                "model_mode": "online",
+                "patient": {"age_months": 18},
+                "measurements": {"respiratory_rate_bpm": 52},
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    body = response.text
+    assert "event: node_completed" in body
+    assert "event: node_started" in body
+    assert "event: result" in body
+    assert '"classification": "PNEUMONIA"' in body
+
+    result_line = next(line for line in body.splitlines() if line.startswith("data: ") and '"classification": "PNEUMONIA"' in line)
+    result_payload = json.loads(result_line.removeprefix("data: "))
+    session_id = result_payload["data"]["session_id"]
+
+    sessionmaker = get_sessionmaker(build_sqlite_url(settings.db_path))
+
+    async def load_session():
+        async with sessionmaker() as db_session:
+            return serialize_session(await get_session(db_session, session_id))
+
+    audit_record = asyncio.run(load_session())
+    assert audit_record["status"] == "completed"
+    assert audit_record["result"]["classification"] == "PNEUMONIA"
+    assert pipeline.last_request.model_mode == "online"
