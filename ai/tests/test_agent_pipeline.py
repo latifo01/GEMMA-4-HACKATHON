@@ -124,6 +124,9 @@ async def test_pipeline_returns_grounded_pneumonia_result_with_citations():
     assert "PNEUMONIA" in result["translated_output"]
     assert "cough_or_difficult_breathing" in store.queries[0]
     assert store.include_visual_embeddings == [True]
+    assert "52 breaths/min" in result["reasoning"]
+    assert "IMCI fast-breathing threshold" in result["reasoning"]
+    assert any("oxygen saturation" in action for action in result["recommendations"])
 
 
 @pytest.mark.asyncio
@@ -173,6 +176,8 @@ async def test_pipeline_uses_deterministic_french_cues_and_fallback_evidence():
     assert result["citations"]
     assert result["citations"][0]["source"] == "imci-chart-booklet.pdf"
     assert "INSUFFICIENT_RAG_CONTEXT" not in result["safety_flags"]
+    assert "cannot be downgraded" in result["reasoning"]
+    assert any("inability to drink" in action.lower() for action in result["recommendations"])
 
 
 @pytest.mark.asyncio

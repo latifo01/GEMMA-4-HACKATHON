@@ -199,9 +199,7 @@ export function TriageResult({ meta, result, isLoading, streamNodes, lastRequest
 
       <section className="grid gap-3">
         <h3 className="text-sm font-semibold text-slate-900">Why this decision</h3>
-        <p className="whitespace-pre-wrap rounded-md border border-slate-200 bg-white px-3 py-3 text-sm leading-6 text-slate-800">
-          {clinicalReasoning}
-        </p>
+        <ReasoningTrace reasoning={clinicalReasoning} />
         {showCaregiverExplanation ? (
           <div className="grid gap-2 rounded-md border border-slate-200 bg-slate-50 p-3">
             <h4 className="text-xs font-semibold uppercase text-slate-500">Caregiver wording</h4>
@@ -249,6 +247,24 @@ export function TriageResult({ meta, result, isLoading, streamNodes, lastRequest
   );
 }
 
+function ReasoningTrace({ reasoning }: { reasoning: string }) {
+  const lines = reasoning.split("\n").map((line) => line.trim()).filter(Boolean);
+
+  return (
+    <ol className="grid gap-2">
+      {lines.map((line, index) => (
+        <li key={`${index}-${line.slice(0, 24)}`} className="grid gap-2 rounded-md border border-slate-200 bg-white px-3 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone={reasoningTone(line)}>{reasoningLabel(line)}</Badge>
+            <span className="text-xs font-semibold uppercase text-slate-400">Step {index + 1}</span>
+          </div>
+          <p className="text-sm leading-6 text-slate-800">{line}</p>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 function StreamingTrace({ nodes }: { nodes?: Record<string, NodeStatus> }) {
   return (
     <ol className="grid content-start gap-2">
@@ -279,6 +295,24 @@ function StreamingTrace({ nodes }: { nodes?: Record<string, NodeStatus> }) {
       })}
     </ol>
   );
+}
+
+function reasoningLabel(line: string) {
+  if (line.startsWith("Gemma 4 extracted")) return "Signals";
+  if (line.startsWith("Safety override")) return "Safety override";
+  if (line.includes("rule:")) return "IMCI rule";
+  if (line.startsWith("Open uncertainty")) return "Uncertainty";
+  if (line.startsWith("Evidence used")) return "Evidence";
+  return "Decision";
+}
+
+function reasoningTone(line: string): Tone {
+  if (line.startsWith("Gemma 4 extracted")) return "blue";
+  if (line.startsWith("Safety override")) return "red";
+  if (line.includes("rule:")) return "amber";
+  if (line.startsWith("Open uncertainty")) return "amber";
+  if (line.startsWith("Evidence used")) return "green";
+  return "neutral";
 }
 
 function EvidencePanel({ citations }: { citations: Array<Record<string, unknown>> }) {
