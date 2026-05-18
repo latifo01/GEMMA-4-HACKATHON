@@ -170,15 +170,16 @@ export function TriageResult({ meta, result, isLoading, streamNodes, lastRequest
               </Badge>
             ))}
           </div>
-          {lastRequest && onRefine ? (
-            <RefineDiagnosisPanel
-              result={result}
-              lastRequest={lastRequest}
-              onRefine={onRefine}
-              isDisabled={isLoading}
-            />
-          ) : null}
         </div>
+      ) : null}
+
+      {lastRequest && onRefine ? (
+        <RefineDiagnosisPanel
+          result={result}
+          lastRequest={lastRequest}
+          onRefine={onRefine}
+          isDisabled={isLoading}
+        />
       ) : null}
 
       {result.safety_flags.length > 0 ? (
