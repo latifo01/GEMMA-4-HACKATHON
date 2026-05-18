@@ -1,0 +1,49 @@
+<svg width="560" height="280" viewBox="0 0 560 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="560" height="280" fill="#F6F8FB"/>
+  <rect x="18" y="18" width="524" height="244" rx="8" fill="#FFFFFF" stroke="#D8E1EA"/>
+
+  <rect x="42" y="38" width="44" height="44" rx="8" fill="#111827"/>
+  <path d="M64 49L76 54V64C76 72 70.5 76.5 64 78C57.5 76.5 52 72 52 64V54L64 49Z" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M58 63H62L64 59L67 69L70 63H74" stroke="#A7F3D0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <text x="100" y="55" fill="#101828" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="24" font-weight="800">ImciFlow</text>
+  <text x="100" y="77" fill="#475467" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" font-weight="600">Gemma 4 triage for field pediatrics</text>
+
+  <text x="42" y="122" fill="#101828" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="800">Grounded triage</text>
+  <text x="42" y="151" fill="#101828" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="800">when networks fail</text>
+  <text x="44" y="177" fill="#475467" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="500">Gemma 4 + IMCI evidence + offline-ready audit.</text>
+
+  <rect x="42" y="202" width="78" height="26" rx="6" fill="#EEF4FF" stroke="#84ADFF"/>
+  <text x="57" y="219" fill="#175CD3" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="11" font-weight="800">Gemma 4</text>
+  <rect x="128" y="202" width="92" height="26" rx="6" fill="#ECFDF3" stroke="#75E0A7"/>
+  <text x="143" y="219" fill="#027A48" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="11" font-weight="800">IMCI RAG</text>
+  <rect x="228" y="202" width="104" height="26" rx="6" fill="#FFF7ED" stroke="#FDBA74"/>
+  <text x="243" y="219" fill="#B45309" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="11" font-weight="800">Offline-ready</text>
+
+  <rect x="356" y="42" width="152" height="194" rx="8" fill="#F8FAFC" stroke="#CBD5E1"/>
+  <rect x="370" y="58" width="42" height="20" rx="5" fill="#FEE2E2" stroke="#FDA4AF"/>
+  <text x="380" y="72" fill="#BE123C" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="9" font-weight="900">PINK</text>
+  <rect x="418" y="58" width="70" height="20" rx="5" fill="#DBEAFE" stroke="#93C5FD"/>
+  <text x="429" y="72" fill="#1D4ED8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="9" font-weight="800">Gemma 4</text>
+
+  <path d="M376 98C376 92.5 380.5 88 386 88C391.5 88 396 92.5 396 98C396 103.5 391.5 108 386 108C380.5 108 376 103.5 376 98Z" fill="#FEE2E2" stroke="#EF4444" stroke-width="1.5"/>
+  <path d="M386 93V99L390 102" stroke="#EF4444" stroke-width="2" stroke-linecap="round"/>
+  <text x="406" y="99" fill="#111827" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="900">Danger sign</text>
+  <text x="406" y="116" fill="#7F1D1D" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="10" font-weight="700">urgent referral</text>
+
+  <rect x="370" y="132" width="124" height="16" rx="4" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <rect x="376" y="138" width="62" height="4" rx="2" fill="#2563EB"/>
+  <rect x="370" y="154" width="124" height="16" rx="4" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <rect x="376" y="160" width="84" height="4" rx="2" fill="#16A34A"/>
+  <rect x="370" y="176" width="124" height="16" rx="4" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <rect x="376" y="182" width="72" height="4" rx="2" fill="#F59E0B"/>
+
+  <rect x="370" y="204" width="124" height="18" rx="5" fill="#FFFFFF" stroke="#BFDBFE"/>
+  <text x="379" y="216" fill="#334155" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="8" font-weight="700">5 cited IMCI sources + audit</text>
+
+  <path d="M338 86C330 99 324 114 323 132C322 151 330 169 342 184" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 6"/>
+  <circle cx="338" cy="86" r="4" fill="#2563EB"/>
+  <circle cx="342" cy="184" r="4" fill="#16A34A"/>
+
+  <text x="356" y="250" fill="#64748B" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="10" font-weight="700">Auditable. Human final decision.</text>
+</svg>
